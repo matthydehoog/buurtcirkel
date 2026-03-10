@@ -122,6 +122,95 @@ function Foutmelding({ tekst, onHerlaad }) {
   );
 }
 
+// ─── SUPER CIRKEL KAART (sub-component) ───────────────────────────
+function SuperCirkelKaart({ cirkel, onKoppel, showToast, sb }) {
+  const [beheerders, setBeheerders] = useState([]);
+  const [alleAcc, setAlleAcc]       = useState([]);
+  const [laden, setLaden]           = useState(true);
+  const [selectId, setSelectId]     = useState("");
+
+  useEffect(() => {
+    async function laad() {
+      try {
+        const [koppelingen, accounts] = await Promise.all([
+          sb(`beheerder_cirkels?select=beheerder_id&cirkel_id=eq.${encodeURIComponent(cirkel.id)}`),
+          sb(`accounts?select=id,naam,email,rol&cirkel_id=eq.${encodeURIComponent(cirkel.id)}&rol=eq.beheerder`),
+        ]);
+        const ids = koppelingen.map(k => k.beheerder_id);
+        setBeheerders(accounts.filter(a => ids.includes(a.id)));
+        setAlleAcc(accounts.filter(a => !ids.includes(a.id)));
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLaden(false);
+      }
+    }
+    laad();
+  }, [cirkel.id]);
+
+  async function koppel() {
+    if (!selectId) return;
+    try {
+      await onKoppel(selectId, cirkel.id);
+      const acc = alleAcc.find(a => a.id === selectId);
+      if (acc) {
+        setBeheerders(prev => [...prev, acc]);
+        setAlleAcc(prev => prev.filter(a => a.id !== selectId));
+      }
+      setSelectId("");
+    } catch(e) {}
+  }
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 14, padding: "18px 20px", boxShadow: "0 2px 10px rgba(0,0,0,0.07)", borderLeft: "5px solid " + cirkel.kleur }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 17 }}>{cirkel.naam}</div>
+          <div style={{ fontSize: 13, color: "#999" }}>{cirkel.stad} · <span style={{ fontFamily: "monospace", background: "#f0f0f0", padding: "1px 6px", borderRadius: 4 }}>{cirkel.id}</span></div>
+        </div>
+      </div>
+
+      {laden ? (
+        <div style={{ fontSize: 13, color: "#bbb" }}>Laden...</div>
+      ) : (
+        <>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Beheerder</div>
+          {beheerders.length === 0 ? (
+            <div style={{ fontSize: 13, color: "#bbb", marginBottom: 10 }}>Nog geen beheerder gekoppeld</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 10 }}>
+              {beheerders.map(b => (
+                <div key={b.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
+                  <span style={{ background: "#6C3FC5", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>beheerder</span>
+                  <span style={{ fontWeight: 600 }}>{b.naam}</span>
+                  <span style={{ color: "#aaa", fontSize: 12 }}>{b.email}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {alleAcc.length > 0 && (
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <select value={selectId} onChange={e => setSelectId(e.target.value)} style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1.5px solid #ddd", fontSize: 13, background: "#fafafa", minWidth: 0 }}>
+                <option value="">— Kies beheerder —</option>
+                {alleAcc.map(a => (
+                  <option key={a.id} value={a.id}>{a.naam} ({a.email})</option>
+                ))}
+              </select>
+              <button type="button" onClick={koppel} disabled={!selectId} style={{ background: "#6C3FC5", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: selectId ? "pointer" : "not-allowed", opacity: selectId ? 1 : 0.5, whiteSpace: "nowrap" }}>
+                Koppelen
+              </button>
+            </div>
+          )}
+          {alleAcc.length === 0 && beheerders.length > 0 && (
+            <div style={{ fontSize: 12, color: "#bbb" }}>Alle beheerders in deze cirkel zijn al gekoppeld</div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── HOOFD APP ────────────────────────────────────────────────────
 export default function App() {
   const [gebruiker, setGebruiker]     = useState(null);
@@ -150,11 +239,12 @@ export default function App() {
   const [loginFout,   setLoginFout]   = useState("");
   const [aanmeldFout, setAanmeldFout] = useState("");
 
-  const cirkel      = cirkels.find(c => c.id === cirkelId) || null;
-  const isBeheerder = gebruiker?.rol === "beheerder";
-  const wachtenden  = leden.filter(l => l.status === "wacht");
-  const actieven    = leden.filter(l => l.status === "actief");
-  const openVerzoeken = verzoeken.filter(v => v.status === "wacht");
+  const cirkel           = cirkels.find(c => c.id === cirkelId) || null;
+  const isBeheerder      = gebruiker?.rol === "beheerder" || gebruiker?.rol === "super_beheerder";
+  const isSuperBeheerder = gebruiker?.rol === "super_beheerder";
+  const wachtenden       = leden.filter(l => l.status === "wacht");
+  const actieven         = leden.filter(l => l.status === "actief");
+  const openVerzoeken    = verzoeken.filter(v => v.status === "wacht");
 
   function showToast(msg, type = "ok") {
     setToast({ msg, type });
@@ -225,11 +315,17 @@ export default function App() {
       if (acc.status === "wacht")     { setGebruiker(acc); setScherm("wachten"); return; }
       if (acc.status === "afgewezen") { setLoginFout("Je aanmelding is helaas afgewezen."); return; }
       setGebruiker(acc);
+      // Super beheerder heeft geen vaste cirkel maar beheert alles
+      if (acc.rol === "super_beheerder") {
+        await laadCirkels();
+        setScherm("superBeheer");
+        showToast("Welkom, " + acc.naam.split(" ")[0] + "!");
+        return;
+      }
       setCirkelId(acc.cirkel_id);
       await Promise.all([
         laadCirkelData(acc.cirkel_id),
         laadVerzoeken(acc.id),
-        acc.rol === "beheerder" ? laadMijnCirkels(acc.id) : Promise.resolve(),
       ]);
       setScherm("cirkel");
       showToast("Welkom terug, " + acc.naam.split(" ")[0] + "!");
@@ -305,13 +401,11 @@ export default function App() {
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
   }
 
-  // Beheerder: extra cirkel beheren
-  async function cirkelToevoegen(cId) {
-    if (mijnCirkels.includes(cId)) return;
+  // Super beheerder: cirkel koppelen aan een beheerder
+  async function cirkelKoppelenAanBeheerder(beheerderId, cId) {
     try {
-      await api.insertBeheerderCirkel({ beheerder_id: gebruiker.id, cirkel_id: cId });
-      setMijnCirkels(prev => [...prev, cId]);
-      showToast("Cirkel toegevoegd aan jouw beheer!");
+      await api.insertBeheerderCirkel({ beheerder_id: beheerderId, cirkel_id: cId });
+      showToast("Cirkel gekoppeld aan beheerder!");
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
   }
 
@@ -385,6 +479,7 @@ export default function App() {
 
   // ── NIEUWE CIRKEL ───────────────────────────────────────────────
   async function nieuweCirkelAanmaken() {
+    if (!isSuperBeheerder) return;
     if (!cirkelForm.naam.trim() || !cirkelForm.stad.trim()) return;
     setBezig(true);
     try {
@@ -392,15 +487,10 @@ export default function App() {
       const kleuren = ["#E8503A", "#4A6FD9", "#6BBF4A", "#C0567B", "#F5A623", "#17A2B8"];
       const kleur = kleuren[Math.floor(Math.random() * kleuren.length)];
       await api.insertCirkel({ id: code, naam: cirkelForm.naam.trim(), stad: cirkelForm.stad.trim(), kleur });
-      await api.insertBeheerderCirkel({ beheerder_id: gebruiker.id, cirkel_id: code });
       const nieuweCirkels = await api.getCirkels();
       setCirkels(nieuweCirkels);
-      setMijnCirkels(prev => [...prev, code]);
-      setCirkelId(code);
-      setLeden([]);
-      setDiensten([]);
       setCirkelForm({ naam: "", stad: "" });
-      setScherm("cirkel");
+      setScherm("superBeheer");
       showToast("Buurtcirkel " + code + " aangemaakt!");
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
     finally { setBezig(false); }
@@ -423,30 +513,44 @@ export default function App() {
 
       {/* ── HEADER ── */}
       <div style={{ background: "#1a1a2e", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", position: "sticky", top: 0, zIndex: 100 }}>
-        <button type="button" onClick={() => gebruiker && scherm !== "wachten" && setScherm("cirkel")} style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", fontSize: 20, fontWeight: 900 }}>
+        <button type="button" onClick={() => gebruiker && scherm !== "wachten" && setScherm(isSuperBeheerder ? "superBeheer" : "cirkel")} style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", fontSize: 20, fontWeight: 900 }}>
           Buurt<span style={{ color: "#E8503A" }}>Cirkel</span>
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {gebruiker && scherm !== "wachten" && (
             <>
-              {/* Mijn verzoeken */}
-              <button type="button" onClick={() => setScherm("mijnVerzoeken")} style={{ background: scherm === "mijnVerzoeken" ? "#E8503A" : "rgba(255,255,255,0.12)", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                Mijn verzoeken
-              </button>
+              {/* Super beheerder navigatie */}
+              {isSuperBeheerder ? (
+                <>
+                  <button type="button" onClick={() => setScherm("superBeheer")} style={{ background: scherm === "superBeheer" ? "#E8503A" : "rgba(255,255,255,0.12)", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                    Super beheer
+                  </button>
+                  <button type="button" onClick={() => setScherm("nieuweCirkel")} style={{ background: scherm === "nieuweCirkel" ? "#E8503A" : "rgba(255,255,255,0.12)", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                    + Cirkel
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* Mijn verzoeken */}
+                  <button type="button" onClick={() => setScherm("mijnVerzoeken")} style={{ background: scherm === "mijnVerzoeken" ? "#E8503A" : "rgba(255,255,255,0.12)", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                    Mijn verzoeken
+                  </button>
 
-              {/* Beheer (alleen beheerder) */}
-              {isBeheerder && (
-                <button type="button" onClick={() => setScherm(scherm === "beheer" ? "cirkel" : "beheer")} style={{ background: scherm === "beheer" ? "#E8503A" : "rgba(255,255,255,0.12)", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", position: "relative" }}>
-                  Beheer
-                  {badgeCount > 0 && <span style={{ position: "absolute", top: -6, right: -6, background: "#E8503A", color: "#fff", fontSize: 10, fontWeight: 700, width: 17, height: 17, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #1a1a2e" }}>{badgeCount}</span>}
-                </button>
+                  {/* Beheer (alleen reguliere beheerder) */}
+                  {isBeheerder && (
+                    <button type="button" onClick={() => setScherm(scherm === "beheer" ? "cirkel" : "beheer")} style={{ background: scherm === "beheer" ? "#E8503A" : "rgba(255,255,255,0.12)", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", position: "relative" }}>
+                      Beheer
+                      {badgeCount > 0 && <span style={{ position: "absolute", top: -6, right: -6, background: "#E8503A", color: "#fff", fontSize: 10, fontWeight: 700, width: 17, height: 17, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #1a1a2e" }}>{badgeCount}</span>}
+                    </button>
+                  )}
+                </>
               )}
 
               <span style={{ color: "#fff", fontSize: 13, fontWeight: 600, opacity: 0.85, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {gebruiker.naam.split(" ")[0]}
               </span>
               <button type="button" onClick={uitloggen} style={{ background: "none", color: "#aaa", border: "1px solid #444", padding: "5px 10px", borderRadius: 20, fontSize: 11, cursor: "pointer" }}>Uit</button>
-              <Avatar tekst={ini(gebruiker.naam)} size={30} kleur={cirkel?.kleur || "#E8503A"} />
+              <Avatar tekst={ini(gebruiker.naam)} size={30} kleur={isSuperBeheerder ? "#6C3FC5" : (cirkel?.kleur || "#E8503A")} />
             </>
           )}
         </div>
@@ -483,7 +587,8 @@ export default function App() {
                 Nog geen account? Aanmelden
               </button>
               <div style={{ marginTop: 16, padding: "12px 14px", background: "#f9f9f9", borderRadius: 10, fontSize: 12, color: "#999", lineHeight: 1.7 }}>
-                <strong>Demo:</strong> lena@bc.nl / lena123 (beheerder)<br />
+                <strong>Demo:</strong> admin@bc.nl / admin123 (super beheerder)<br />
+                lena@bc.nl / lena123 (beheerder)<br />
                 pieter@bc.nl / pieter123 (lid)
               </div>
             </div>
@@ -548,35 +653,10 @@ export default function App() {
               <div style={{ fontWeight: 900, fontSize: 26, marginBottom: 4 }}>{cirkel.naam}</div>
               <div style={{ opacity: 0.85, fontSize: 13, marginBottom: 14 }}>{cirkel.stad} · {diensten.length} diensten · {actieven.length} leden</div>
 
-              {/* Cirkels schakelaar voor beheerder */}
-              {isBeheerder && mijnCirkels.length > 1 && (
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-                  {mijnCirkels.map(cId => {
-                    const c = cirkels.find(x => x.id === cId);
-                    if (!c) return null;
-                    return (
-                      <button key={cId} type="button" onClick={() => schakelCirkel(cId)} style={{ background: cId === cirkelId ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.4)", padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                        {c.naam}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button type="button" onClick={() => setScherm("nieuweDienst")} style={{ background: "rgba(255,255,255,0.25)", color: "#fff", border: "2px solid rgba(255,255,255,0.5)", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                   + Dienst aanbieden
                 </button>
-                {isBeheerder && (
-                  <button type="button" onClick={() => setScherm("nieuweCirkel")} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "2px solid rgba(255,255,255,0.3)", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                    + Nieuwe cirkel
-                  </button>
-                )}
-                {isBeheerder && (
-                  <button type="button" onClick={() => setScherm("cirkelKoppelen")} style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "2px solid rgba(255,255,255,0.25)", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                    + Cirkel beheren
-                  </button>
-                )}
               </div>
             </div>
 
@@ -765,26 +845,24 @@ export default function App() {
           </div>
         )}
 
-        {/* ══ CIRKEL KOPPELEN ══ */}
-        {scherm === "cirkelKoppelen" && isBeheerder && (
+        {/* ══ SUPER BEHEER ══ */}
+        {scherm === "superBeheer" && isSuperBeheerder && (
           <div>
-            <button type="button" onClick={() => setScherm("cirkel")} style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 14, marginBottom: 18 }}>&#8592; Terug</button>
-            <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 6 }}>Extra cirkel beheren</h2>
-            <p style={{ color: "#999", fontSize: 13, marginBottom: 20 }}>Voeg een bestaande buurtcirkel toe aan jouw beheerdersrechten.</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {cirkels.filter(c => !mijnCirkels.includes(c.id)).map(c => (
-                <div key={c.id} style={{ ...card, display: "flex", alignItems: "center", gap: 12, borderLeft: "4px solid " + c.kleur }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 16 }}>{c.naam}</div>
-                    <div style={{ fontSize: 13, color: "#999" }}>{c.stad} · {c.id}</div>
-                  </div>
-                  <button type="button" onClick={() => cirkelToevoegen(c.id)} style={{ background: c.kleur, color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                    Toevoegen
-                  </button>
-                </div>
+            <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 6 }}>Super beheer</h2>
+            <p style={{ color: "#999", fontSize: 13, marginBottom: 20 }}>Overzicht van alle buurtcirkels en beheerders. Koppel cirkels aan beheerders.</p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {cirkels.map(c => (
+                <SuperCirkelKaart
+                  key={c.id}
+                  cirkel={c}
+                  onKoppel={cirkelKoppelenAanBeheerder}
+                  showToast={showToast}
+                  sb={sb}
+                />
               ))}
-              {cirkels.filter(c => !mijnCirkels.includes(c.id)).length === 0 && (
-                <div style={{ ...card, color: "#bbb", textAlign: "center", padding: 24 }}>Je beheert al alle beschikbare cirkels</div>
+              {cirkels.length === 0 && (
+                <div style={{ ...card, color: "#bbb", textAlign: "center", padding: 24 }}>Nog geen buurtcirkels aangemaakt</div>
               )}
             </div>
           </div>
@@ -811,18 +889,18 @@ export default function App() {
           </div>
         )}
 
-        {/* ══ NIEUWE CIRKEL ══ */}
-        {scherm === "nieuweCirkel" && (
+        {/* ══ NIEUWE CIRKEL (alleen super beheerder) ══ */}
+        {scherm === "nieuweCirkel" && isSuperBeheerder && (
           <div>
-            <button type="button" onClick={() => setScherm("cirkel")} style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 14, marginBottom: 18 }}>&#8592; Terug</button>
+            <button type="button" onClick={() => setScherm("superBeheer")} style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 14, marginBottom: 18 }}>&#8592; Terug</button>
             <div style={card}>
               <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 6 }}>Nieuwe buurtcirkel</h2>
-              <p style={{ color: "#999", fontSize: 13, marginBottom: 20 }}>Er wordt automatisch een unieke code aangemaakt. Jij wordt automatisch beheerder.</p>
+              <p style={{ color: "#999", fontSize: 13, marginBottom: 20 }}>Er wordt automatisch een unieke code aangemaakt. Koppel daarna een beheerder aan de cirkel.</p>
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>Naam van de wijk</label>
               <input value={cirkelForm.naam} onChange={e => setCirkelForm(p => ({ ...p, naam: e.target.value }))} placeholder="bijv. De Pijp" style={{ ...inp, marginBottom: 14 }} />
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>Stad</label>
               <input value={cirkelForm.stad} onChange={e => setCirkelForm(p => ({ ...p, stad: e.target.value }))} placeholder="bijv. Amsterdam" style={{ ...inp, marginBottom: 20 }} />
-              <button type="button" onClick={nieuweCirkelAanmaken} disabled={bezig} style={{ background: "#E8503A", color: "#fff", border: "none", padding: "12px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: bezig ? "not-allowed" : "pointer", width: "100%", opacity: bezig ? 0.7 : 1 }}>
+              <button type="button" onClick={nieuweCirkelAanmaken} disabled={bezig} style={{ background: "#6C3FC5", color: "#fff", border: "none", padding: "12px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: bezig ? "not-allowed" : "pointer", width: "100%", opacity: bezig ? 0.7 : 1 }}>
                 {bezig ? "Bezig..." : "Buurtcirkel aanmaken"}
               </button>
             </div>
