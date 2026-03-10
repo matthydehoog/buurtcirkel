@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 
+const APP_VERSIE = "1.5.0";
+
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Lxs6J-YBpbBl0sQ6XBZjMA_R0_P9i_n";
@@ -556,6 +558,7 @@ export default function App() {
       <div style={{ background: "#1a1a2e", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", position: "sticky", top: 0, zIndex: 100 }}>
         <button type="button" onClick={() => gebruiker && scherm !== "wachten" && setScherm(isSuperBeheerder ? "superBeheer" : "cirkel")} style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", fontSize: 20, fontWeight: 900 }}>
           Buurt<span style={{ color: "#E8503A" }}>Cirkel</span>
+          <span style={{ fontSize: 10, fontWeight: 400, color: "rgba(255,255,255,0.4)", marginLeft: 6, letterSpacing: 0.5 }}>v{APP_VERSIE}</span>
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {gebruiker && scherm !== "wachten" && (
