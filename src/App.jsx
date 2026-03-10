@@ -27,6 +27,7 @@ const api = {
   // Cirkels
   getCirkels: () => sb("cirkels?select=*&order=naam"),
   insertCirkel: (row) => sb("cirkels", { method: "POST", body: JSON.stringify(row) }),
+  deleteCirkel: (id) => sb(`cirkels?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "return=minimal" }),
 
   // Accounts
   getAccount: (email) => sb(`accounts?select=*&email=eq.${encodeURIComponent(email)}`),
@@ -123,7 +124,7 @@ function Foutmelding({ tekst, onHerlaad }) {
 }
 
 // ─── SUPER CIRKEL KAART (sub-component) ───────────────────────────
-function SuperCirkelKaart({ cirkel, onKoppel, showToast, sb }) {
+function SuperCirkelKaart({ cirkel, onKoppel, onVerwijder, showToast, sb }) {
   const [beheerders, setBeheerders] = useState([]);
   const [alleAcc, setAlleAcc]       = useState([]);
   const [laden, setLaden]           = useState(true);
@@ -168,6 +169,9 @@ function SuperCirkelKaart({ cirkel, onKoppel, showToast, sb }) {
           <div style={{ fontWeight: 800, fontSize: 17 }}>{cirkel.naam}</div>
           <div style={{ fontSize: 13, color: "#999" }}>{cirkel.stad} · <span style={{ fontFamily: "monospace", background: "#f0f0f0", padding: "1px 6px", borderRadius: 4 }}>{cirkel.id}</span></div>
         </div>
+        <button type="button" onClick={() => onVerwijder(cirkel.id)} style={{ background: "#fee", color: "#c0392b", border: "1px solid #fcc", padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          Verwijderen
+        </button>
       </div>
 
       {laden ? (
@@ -407,6 +411,21 @@ export default function App() {
       await api.insertBeheerderCirkel({ beheerder_id: beheerderId, cirkel_id: cId });
       showToast("Cirkel gekoppeld aan beheerder!");
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
+  }
+
+  // Super beheerder: cirkel verwijderen (incl. alle gekoppelde data)
+  async function cirkelVerwijderen(cId) {
+    if (!window.confirm(`Weet je zeker dat je buurtcirkel ${cId} wilt verwijderen? Alle leden, diensten en verzoeken worden ook verwijderd.`)) return;
+    try {
+      // Verwijder in volgorde: verzoeken → diensten → beheerder_cirkels → accounts → cirkel
+      await sb(`verzoeken?cirkel_id=eq.${encodeURIComponent(cId)}`, { method: "DELETE", prefer: "return=minimal" });
+      await sb(`diensten?cirkel_id=eq.${encodeURIComponent(cId)}`, { method: "DELETE", prefer: "return=minimal" });
+      await sb(`beheerder_cirkels?cirkel_id=eq.${encodeURIComponent(cId)}`, { method: "DELETE", prefer: "return=minimal" });
+      await sb(`accounts?cirkel_id=eq.${encodeURIComponent(cId)}`, { method: "DELETE", prefer: "return=minimal" });
+      await api.deleteCirkel(cId);
+      setCirkels(prev => prev.filter(c => c.id !== cId));
+      showToast("Buurtcirkel verwijderd.");
+    } catch (e) { showToast("Fout bij verwijderen: " + e.message, "fout"); }
   }
 
   async function schakelCirkel(cId) {
@@ -857,6 +876,7 @@ export default function App() {
                   key={c.id}
                   cirkel={c}
                   onKoppel={cirkelKoppelenAanBeheerder}
+                  onVerwijder={cirkelVerwijderen}
                   showToast={showToast}
                   sb={sb}
                 />
