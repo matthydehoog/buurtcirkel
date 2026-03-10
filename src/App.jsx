@@ -442,6 +442,9 @@ export default function App() {
                 </button>
               )}
 
+              <span style={{ color: "#fff", fontSize: 13, fontWeight: 600, opacity: 0.85, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {gebruiker.naam.split(" ")[0]}
+              </span>
               <button type="button" onClick={uitloggen} style={{ background: "none", color: "#aaa", border: "1px solid #444", padding: "5px 10px", borderRadius: 20, fontSize: 11, cursor: "pointer" }}>Uit</button>
               <Avatar tekst={ini(gebruiker.naam)} size={30} kleur={cirkel?.kleur || "#E8503A"} />
             </>
