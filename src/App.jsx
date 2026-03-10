@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const APP_VERSIE = "1.5.0";
+const APP_VERSIE = "1.6.0";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -242,7 +242,7 @@ export default function App() {
   const [loginForm,   setLoginForm]   = useState({ email: "", wachtwoord: "" });
   const [aanmeldForm, setAanmeldForm] = useState({ naam: "", email: "", wachtwoord: "", herhaal: "", telefoon: "", cirkelId: "" });
   const [dienstForm,  setDienstForm]  = useState({ titel: "", categorie: "Overig", beschrijving: "" });
-  const [cirkelForm,  setCirkelForm]  = useState({ naam: "", stad: "" });
+  const [cirkelForm,  setCirkelForm]  = useState({ naam: "", stad: "", code: "" });
   const [loginFout,   setLoginFout]   = useState("");
   const [aanmeldFout, setAanmeldFout] = useState("");
 
@@ -519,16 +519,24 @@ export default function App() {
   // ── NIEUWE CIRKEL ───────────────────────────────────────────────
   async function nieuweCirkelAanmaken() {
     if (!isSuperBeheerder) return;
-    if (!cirkelForm.naam.trim() || !cirkelForm.stad.trim()) return;
+    const code = cirkelForm.code.trim().toUpperCase();
+    if (!cirkelForm.naam.trim() || !cirkelForm.stad.trim() || !code) {
+      showToast("Vul alle velden in.", "fout"); return;
+    }
+    if (!/^BC-[A-Z0-9]{2,10}$/.test(code)) {
+      showToast("Code moet beginnen met BC- gevolgd door letters/cijfers (bijv. BC-PIJP of BC-1042).", "fout"); return;
+    }
+    if (cirkels.find(c => c.id === code)) {
+      showToast("Deze code is al in gebruik.", "fout"); return;
+    }
     setBezig(true);
     try {
-      const code = "BC-" + String(Math.floor(1000 + Math.random() * 9000));
       const kleuren = ["#E8503A", "#4A6FD9", "#6BBF4A", "#C0567B", "#F5A623", "#17A2B8"];
       const kleur = kleuren[Math.floor(Math.random() * kleuren.length)];
       await api.insertCirkel({ id: code, naam: cirkelForm.naam.trim(), stad: cirkelForm.stad.trim(), kleur });
       const nieuweCirkels = await api.getCirkels();
       setCirkels(nieuweCirkels);
-      setCirkelForm({ naam: "", stad: "" });
+      setCirkelForm({ naam: "", stad: "", code: "" });
       setScherm("superBeheer");
       showToast("Buurtcirkel " + code + " aangemaakt!");
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
@@ -974,7 +982,10 @@ export default function App() {
             <button type="button" onClick={() => setScherm("superBeheer")} style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 14, marginBottom: 18 }}>&#8592; Terug</button>
             <div style={card}>
               <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 6 }}>Nieuwe buurtcirkel</h2>
-              <p style={{ color: "#999", fontSize: 13, marginBottom: 20 }}>Er wordt automatisch een unieke code aangemaakt. Koppel daarna een beheerder aan de cirkel.</p>
+              <p style={{ color: "#999", fontSize: 13, marginBottom: 20 }}>Kies een unieke BC-code voor deze cirkel. Leden gebruiken deze code bij aanmelding.</p>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>BC-code</label>
+              <input value={cirkelForm.code} onChange={e => setCirkelForm(p => ({ ...p, code: e.target.value.toUpperCase() }))} placeholder="bijv. BC-PIJP of BC-1042" style={{ ...inp, marginBottom: 6, fontFamily: "monospace" }} />
+              <div style={{ fontSize: 12, color: "#aaa", marginBottom: 14 }}>Begint altijd met BC- gevolgd door letters of cijfers</div>
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>Naam van de wijk</label>
               <input value={cirkelForm.naam} onChange={e => setCirkelForm(p => ({ ...p, naam: e.target.value }))} placeholder="bijv. De Pijp" style={{ ...inp, marginBottom: 14 }} />
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>Stad</label>
