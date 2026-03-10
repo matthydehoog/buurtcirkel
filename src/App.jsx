@@ -39,6 +39,7 @@ const api = {
   // Diensten
   getDiensten: (cirkelId) => sb(`diensten?select=*&cirkel_id=eq.${encodeURIComponent(cirkelId)}&order=datum.desc`),
   insertDienst: (row) => sb("diensten", { method: "POST", body: JSON.stringify(row) }),
+  updateDienst: (id, patch) => sb(`diensten?id=eq.${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
   deleteDienst: (id) => sb(`diensten?id=eq.${id}`, { method: "DELETE", prefer: "return=minimal" }),
 
   // Verzoeken
@@ -447,11 +448,12 @@ export default function App() {
         titel: dienstForm.titel, categorie: dienstForm.categorie,
         beschrijving: dienstForm.beschrijving,
         datum: new Date().toISOString().slice(0, 10),
+        status: "wacht",
       });
       setDiensten(prev => [nieuw[0], ...prev]);
       setDienstForm({ titel: "", categorie: "Overig", beschrijving: "" });
       setScherm("cirkel");
-      showToast("Dienst toegevoegd!");
+      showToast("Dienst ingediend! De beheerder moet deze nog goedkeuren.");
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
     finally { setBezig(false); }
   }
@@ -461,6 +463,22 @@ export default function App() {
       await api.deleteDienst(id);
       setDiensten(prev => prev.filter(d => d.id !== id));
       showToast("Dienst verwijderd.");
+    } catch (e) { showToast("Fout: " + e.message, "fout"); }
+  }
+
+  async function dienstGoedkeuren(id) {
+    try {
+      await api.updateDienst(id, { status: "actief" });
+      setDiensten(prev => prev.map(d => d.id === id ? { ...d, status: "actief" } : d));
+      showToast("Dienst goedgekeurd!");
+    } catch (e) { showToast("Fout: " + e.message, "fout"); }
+  }
+
+  async function dienstAfwijzen(id) {
+    try {
+      await api.deleteDienst(id);
+      setDiensten(prev => prev.filter(d => d.id !== id));
+      showToast("Dienst afgewezen en verwijderd.");
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
   }
 
@@ -516,14 +534,18 @@ export default function App() {
   }
 
   // ── GEFILTERDE DIENSTEN ─────────────────────────────────────────
-  const gefilterд = diensten.filter(d =>
-    (filter === "Alle" || d.categorie === filter) &&
-    (zoek === "" || d.titel.toLowerCase().includes(zoek.toLowerCase()) || d.beschrijving.toLowerCase().includes(zoek.toLowerCase()))
-  );
+  const gefilterд = diensten.filter(d => {
+    // Actieve diensten zijn voor iedereen zichtbaar
+    // Wachtende diensten: alleen voor de aanbieder zelf en de beheerder
+    if (d.status !== "actief" && !isBeheerder && d.lid_id !== gebruiker?.id) return false;
+    return (filter === "Alle" || d.categorie === filter) &&
+      (zoek === "" || d.titel.toLowerCase().includes(zoek.toLowerCase()) || d.beschrijving.toLowerCase().includes(zoek.toLowerCase()));
+  });
 
   const totaalOpenVerzoeken = openVerzoeken.length;
   const totaalWachtenden = wachtenden.length;
-  const badgeCount = totaalOpenVerzoeken + totaalWachtenden;
+  const wachtendeDiensten = diensten.filter(d => d.status === "wacht");
+  const badgeCount = totaalOpenVerzoeken + totaalWachtenden + wachtendeDiensten.length;
 
   // ═══════════════════════════════════════════════════════════════
   return (
@@ -713,13 +735,16 @@ export default function App() {
                       <p style={{ fontSize: 14, color: "#555", lineHeight: 1.6, margin: "0 0 12px" }}>{d.beschrijving}</p>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <span style={{ fontSize: 12, color: "#bbb" }}>{new Date(d.datum).toLocaleDateString("nl-NL", { day: "numeric", month: "long" })}</span>
-                        <div style={{ display: "flex", gap: 8 }}>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          {d.status === "wacht" && (
+                            <span style={{ background: "#FFF3CD", color: "#856404", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>Wacht op goedkeuring</span>
+                          )}
                           {(isEigen || isBeheerder) && (
                             <button type="button" onClick={() => dienstVerwijderen(d.id)} style={{ background: "#fee", color: "#c0392b", border: "1px solid #fcc", padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                               Verwijder
                             </button>
                           )}
-                          {!isEigen && (
+                          {!isEigen && d.status === "actief" && (
                             alVerzocht ? (
                               <span style={{ background: "#f0f0f0", color: "#aaa", padding: "7px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>Verzocht ✓</span>
                             ) : (
@@ -834,6 +859,37 @@ export default function App() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {wachtendeDiensten.length > 0 && (
+              <div style={{ marginBottom: 28 }}>
+                <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                  Diensten — wachten op goedkeuring
+                  <span style={{ background: "#F5A623", color: "#fff", fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>{wachtendeDiensten.length}</span>
+                </h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {wachtendeDiensten.map(d => {
+                    const cat = CAT_STIJL[d.categorie] || CAT_STIJL.Overig;
+                    return (
+                      <div key={d.id} style={{ ...card, borderLeft: "4px solid #F5A623" }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
+                          <Avatar tekst={d.avatar} size={38} kleur={cirkel?.kleur || "#888"} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, fontSize: 15 }}>{d.titel}</div>
+                            <div style={{ fontSize: 13, color: "#999" }}>{d.lid_naam}</div>
+                            <span style={{ background: cat.bg, color: cat.text, fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, display: "inline-block", marginTop: 4 }}>{d.categorie}</span>
+                          </div>
+                        </div>
+                        <p style={{ fontSize: 14, color: "#555", lineHeight: 1.6, margin: "0 0 12px" }}>{d.beschrijving}</p>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button type="button" onClick={() => dienstGoedkeuren(d.id)} style={{ background: "#27ae60", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Goedkeuren</button>
+                          <button type="button" onClick={() => dienstAfwijzen(d.id)} style={{ background: "#e74c3c", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Afwijzen</button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
