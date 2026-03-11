@@ -1,16 +1,21 @@
 import { useState, useEffect } from "react";
 
-const APP_VERSIE = "1.6.0";
+const APP_VERSIE = "2.0.0";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Lxs6J-YBpbBl0sQ6XBZjMA_R0_P9i_n";
 
+// Actieve Auth sessie (token wordt na login ingesteld)
+let authToken = null;
+
+// REST API helper — gebruikt JWT token als die beschikbaar is
 async function sb(path, options = {}) {
+  const token = authToken || SUPABASE_KEY;
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     headers: {
       "apikey": SUPABASE_KEY,
-      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Authorization": `Bearer ${token}`,
       "Content-Type": "application/json",
       "Prefer": options.prefer || "return=representation",
       ...options.headers,
@@ -25,35 +30,57 @@ async function sb(path, options = {}) {
   return text ? JSON.parse(text) : [];
 }
 
-const api = {
-  // Cirkels
-  getCirkels: () => sb("cirkels?select=*&order=naam"),
-  insertCirkel: (row) => sb("cirkels", { method: "POST", body: JSON.stringify(row) }),
-  deleteCirkel: (id) => sb(`cirkels?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "return=minimal" }),
+// Supabase Auth helper
+async function authFetch(endpoint, body) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/${endpoint}`, {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error_description || data.msg || data.message || "Auth fout");
+  return data;
+}
 
-  // Accounts
-  getAccount: (email) => sb(`accounts?select=*&email=eq.${encodeURIComponent(email)}`),
+const api = {
+  // Auth
+  signUp:  (email, wachtwoord) => authFetch("signup",  { email, password: wachtwoord }),
+  signIn:  (email, wachtwoord) => authFetch("token?grant_type=password", { email, password: wachtwoord }),
+  signOut: () => fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+    method: "POST",
+    headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${authToken}` },
+  }),
+
+  // Cirkels
+  getCirkels:    ()        => sb("cirkels?select=*&order=naam"),
+  insertCirkel:  (row)     => sb("cirkels", { method: "POST", body: JSON.stringify(row) }),
+  deleteCirkel:  (id)      => sb(`cirkels?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "return=minimal" }),
+
+  // Profielen (accounts tabel — geen wachtwoord meer)
+  getProfiel:          (authId)   => sb(`accounts?select=*&auth_id=eq.${authId}`),
   getAccountsByCirkel: (cirkelId) => sb(`accounts?select=*&cirkel_id=eq.${encodeURIComponent(cirkelId)}&order=naam`),
-  insertAccount: (row) => sb("accounts", { method: "POST", body: JSON.stringify(row) }),
-  updateAccount: (id, patch) => sb(`accounts?id=eq.${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
-  deleteAccount: (id) => sb(`accounts?id=eq.${id}`, { method: "DELETE", prefer: "return=minimal" }),
+  insertAccount:       (row)      => sb("accounts", { method: "POST", body: JSON.stringify(row) }),
+  updateAccount:       (id, patch)=> sb(`accounts?id=eq.${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+  deleteAccount:       (id)       => sb(`accounts?id=eq.${id}`, { method: "DELETE", prefer: "return=minimal" }),
 
   // Diensten
-  getDiensten: (cirkelId) => sb(`diensten?select=*&cirkel_id=eq.${encodeURIComponent(cirkelId)}&order=datum.desc`),
-  insertDienst: (row) => sb("diensten", { method: "POST", body: JSON.stringify(row) }),
-  updateDienst: (id, patch) => sb(`diensten?id=eq.${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
-  deleteDienst: (id) => sb(`diensten?id=eq.${id}`, { method: "DELETE", prefer: "return=minimal" }),
+  getDiensten:   (cirkelId) => sb(`diensten?select=*&cirkel_id=eq.${encodeURIComponent(cirkelId)}&order=datum.desc`),
+  insertDienst:  (row)      => sb("diensten", { method: "POST", body: JSON.stringify(row) }),
+  updateDienst:  (id, patch)=> sb(`diensten?id=eq.${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+  deleteDienst:  (id)       => sb(`diensten?id=eq.${id}`, { method: "DELETE", prefer: "return=minimal" }),
 
   // Verzoeken
-  getVerzoeken: (aanbiederId) => sb(`verzoeken?select=*&aanbieder_id=eq.${aanbiederId}&order=datum.desc`),
-  getMijnVerzoeken: (aanvragerId) => sb(`verzoeken?select=*&aanvrager_id=eq.${aanvragerId}&order=datum.desc`),
-  getAlleVerzoekenvCirkel: (cirkelId) => sb(`verzoeken?select=*&cirkel_id=eq.${encodeURIComponent(cirkelId)}&order=datum.desc`),
-  insertVerzoek: (row) => sb("verzoeken", { method: "POST", body: JSON.stringify(row) }),
-  updateVerzoek: (id, patch) => sb(`verzoeken?id=eq.${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+  getVerzoeken:         (aanbiederId) => sb(`verzoeken?select=*&aanbieder_id=eq.${aanbiederId}&order=datum.desc`),
+  getMijnVerzoeken:     (aanvragerId) => sb(`verzoeken?select=*&aanvrager_id=eq.${aanvragerId}&order=datum.desc`),
+  insertVerzoek:        (row)         => sb("verzoeken", { method: "POST", body: JSON.stringify(row) }),
+  updateVerzoek:        (id, patch)   => sb(`verzoeken?id=eq.${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
 
   // Beheerder-cirkels
-  getBeheerderCirkels: (beheerderId) => sb(`beheerder_cirkels?select=cirkel_id&beheerder_id=eq.${beheerderId}`),
-  insertBeheerderCirkel: (row) => sb("beheerder_cirkels", { method: "POST", body: JSON.stringify(row) }),
+  getBeheerderCirkels:  (beheerderId) => sb(`beheerder_cirkels?select=cirkel_id&beheerder_id=eq.${beheerderId}`),
+  insertBeheerderCirkel:(row)         => sb("beheerder_cirkels", { method: "POST", body: JSON.stringify(row) }),
 };
 
 // ─── STIJL ────────────────────────────────────────────────────────
@@ -138,7 +165,7 @@ function SuperCirkelKaart({ cirkel, onKoppel, onVerwijder, showToast, sb }) {
       try {
         const [koppelingen, accounts] = await Promise.all([
           sb(`beheerder_cirkels?select=beheerder_id&cirkel_id=eq.${encodeURIComponent(cirkel.id)}`),
-          sb(`accounts?select=id,naam,email,rol&cirkel_id=eq.${encodeURIComponent(cirkel.id)}&rol=eq.beheerder`),
+          sb(`accounts?select=id,naam,email,rol&rol=eq.beheerder&status=eq.actief`),
         ]);
         const ids = koppelingen.map(k => k.beheerder_id);
         setBeheerders(accounts.filter(a => ids.includes(a.id)));
@@ -314,15 +341,19 @@ export default function App() {
     setLoginFout("");
     setBezig(true);
     try {
-      const res = await api.getAccount(loginForm.email.trim());
-      const acc = res[0];
-      if (!acc || acc.wachtwoord !== loginForm.wachtwoord) {
-        setLoginFout("E-mailadres of wachtwoord klopt niet."); return;
-      }
+      // 1. Supabase Auth sign-in → krijg JWT token
+      const authData = await api.signIn(loginForm.email.trim(), loginForm.wachtwoord);
+      authToken = authData.access_token;
+
+      // 2. Haal profiel op via auth_id (uuid van Supabase Auth)
+      const profielen = await api.getProfiel(authData.user.id);
+      const acc = profielen[0];
+      if (!acc) { setLoginFout("Geen profiel gevonden. Neem contact op met de beheerder."); authToken = null; return; }
+
       if (acc.status === "wacht")     { setGebruiker(acc); setScherm("wachten"); return; }
-      if (acc.status === "afgewezen") { setLoginFout("Je aanmelding is helaas afgewezen."); return; }
+      if (acc.status === "afgewezen") { setLoginFout("Je aanmelding is helaas afgewezen."); authToken = null; return; }
+
       setGebruiker(acc);
-      // Super beheerder heeft geen vaste cirkel maar beheert alles
       if (acc.rol === "super_beheerder") {
         await laadCirkels();
         setScherm("superBeheer");
@@ -330,22 +361,22 @@ export default function App() {
         return;
       }
       setCirkelId(acc.cirkel_id);
-      await Promise.all([
-        laadCirkelData(acc.cirkel_id),
-        laadVerzoeken(acc.id),
-      ]);
+      await Promise.all([laadCirkelData(acc.cirkel_id), laadVerzoeken(acc.id)]);
       setScherm("cirkel");
       showToast("Welkom terug, " + acc.naam.split(" ")[0] + "!");
     } catch (e) {
-      setLoginFout("Verbindingsfout: " + e.message);
+      setLoginFout(e.message.includes("Invalid login") ? "E-mailadres of wachtwoord klopt niet." : "Fout: " + e.message);
     } finally {
       setBezig(false);
     }
   }
 
-  function uitloggen() {
+  async function uitloggen() {
+    try { await api.signOut(); } catch (_) {}
+    authToken = null;
     setGebruiker(null);
     setCirkelId(null);
+    setLaden(false);
     setLeden([]);
     setDiensten([]);
     setVerzoeken([]);
@@ -362,21 +393,27 @@ export default function App() {
       setAanmeldFout("Vul alle velden in."); return;
     }
     if (wachtwoord !== herhaal) { setAanmeldFout("Wachtwoorden komen niet overeen."); return; }
+    if (wachtwoord.length < 6)  { setAanmeldFout("Wachtwoord moet minimaal 6 tekens zijn."); return; }
     if (!/^[0-9\s\+\-]{7,15}$/.test(telefoon.trim())) { setAanmeldFout("Voer een geldig telefoonnummer in."); return; }
     if (!cirkels.find(c => c.id === cId)) { setAanmeldFout("Onbekende buurtcirkelcode."); return; }
     setBezig(true);
     try {
-      const bestaand = await api.getAccount(email.trim());
-      if (bestaand.length > 0) { setAanmeldFout("Dit e-mailadres is al in gebruik."); return; }
+      // 1. Maak Auth account aan bij Supabase
+      const authData = await api.signUp(email.trim(), wachtwoord);
+      const authId = authData.user?.id;
+      if (!authId) throw new Error("Aanmaken Auth account mislukt.");
+
+      // 2. Sla profiel op in accounts tabel (zonder wachtwoord)
       const nieuw = await api.insertAccount({
-        naam: naam.trim(), email: email.trim(), wachtwoord,
+        auth_id: authId,
+        naam: naam.trim(), email: email.trim(),
         telefoon: telefoon.trim(), rol: "lid", status: "wacht", cirkel_id: cId,
       });
       setGebruiker(nieuw[0]);
       setScherm("wachten");
       showToast("Aanmelding verstuurd!");
     } catch (e) {
-      setAanmeldFout("Fout: " + e.message);
+      setAanmeldFout(e.message.includes("already registered") ? "Dit e-mailadres is al in gebruik." : "Fout: " + e.message);
     } finally {
       setBezig(false);
     }
@@ -639,9 +676,8 @@ export default function App() {
                 Nog geen account? Aanmelden
               </button>
               <div style={{ marginTop: 16, padding: "12px 14px", background: "#f9f9f9", borderRadius: 10, fontSize: 12, color: "#999", lineHeight: 1.7 }}>
-                <strong>Demo:</strong> admin@bc.nl / admin123 (super beheerder)<br />
-                lena@bc.nl / lena123 (beheerder)<br />
-                pieter@bc.nl / pieter123 (lid)
+                <strong>Let op:</strong> gebruik je geregistreerde e-mail en wachtwoord.<br />
+                Accounts worden aangemaakt via het aanmeldformulier.
               </div>
             </div>
           </div>
