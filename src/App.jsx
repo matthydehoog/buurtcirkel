@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const APP_VERSIE = "2.0.0";
+const APP_VERSIE = "2.1.0";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -165,7 +165,7 @@ function SuperCirkelKaart({ cirkel, onKoppel, onVerwijder, showToast, sb }) {
       try {
         const [koppelingen, accounts] = await Promise.all([
           sb(`beheerder_cirkels?select=beheerder_id&cirkel_id=eq.${encodeURIComponent(cirkel.id)}`),
-          sb(`accounts?select=id,naam,email,rol&rol=eq.beheerder&status=eq.actief`),
+          sb(`accounts?select=id,naam,email,rol&cirkel_id=eq.${encodeURIComponent(cirkel.id)}&rol=eq.beheerder&status=eq.actief`),
         ]);
         const ids = koppelingen.map(k => k.beheerder_id);
         setBeheerders(accounts.filter(a => ids.includes(a.id)));
