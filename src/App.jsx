@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const APP_VERSIE = "2.3.0";
+const APP_VERSIE = "2.3.1";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -416,12 +416,21 @@ export default function App() {
       const authId = authData.user?.id;
       if (!authId) throw new Error("Aanmaken Auth account mislukt.");
 
-      // 2. Sla profiel op in accounts tabel (zonder wachtwoord)
+      // 2. Direct inloggen om een JWT token te krijgen (nodig voor RLS INSERT)
+      const sessie = await api.signIn(email.trim(), wachtwoord);
+      authToken = sessie.access_token;
+
+      // 3. Sla profiel op in accounts tabel (zonder wachtwoord)
       const nieuw = await api.insertAccount({
         auth_id: authId,
         naam: naam.trim(), email: email.trim(),
         telefoon: telefoon.trim(), rol: "lid", status: "wacht", cirkel_id: cId,
       });
+
+      // 4. Uitloggen — account moet eerst goedgekeurd worden
+      try { await api.signOut(); } catch (_) {}
+      authToken = null;
+
       setGebruiker(nieuw[0]);
       setScherm("wachten");
       showToast("Aanmelding verstuurd!");
