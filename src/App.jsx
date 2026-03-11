@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 
-const APP_VERSIE = "2.3.1";
+const APP_VERSIE = "2.4.0";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Lxs6J-YBpbBl0sQ6XBZjMA_R0_P9i_n";
+
+// ─── HCAPTCHA ─────────────────────────────────────────────────────
+const HCAPTCHA_SITE_KEY = "614ebf34-5346-49ca-9578-0932eb0a6f3a"; // ← vervang dit
 
 // Actieve Auth sessie (token wordt na login ingesteld)
 let authToken = null;
@@ -47,8 +50,8 @@ async function authFetch(endpoint, body) {
 
 const api = {
   // Auth
-  signUp:  (email, wachtwoord) => authFetch("signup",  { email, password: wachtwoord }),
-  signIn:  (email, wachtwoord) => authFetch("token?grant_type=password", { email, password: wachtwoord }),
+  signUp:  (email, wachtwoord, captchaToken) => authFetch("signup",  { email, password: wachtwoord, gotrue_meta_security: { captcha_token: captchaToken } }),
+  signIn:  (email, wachtwoord, captchaToken) => authFetch("token?grant_type=password", { email, password: wachtwoord, gotrue_meta_security: { captcha_token: captchaToken } }),
   signOut: () => fetch(`${SUPABASE_URL}/auth/v1/logout`, {
     method: "POST",
     headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${authToken}` },
@@ -103,6 +106,54 @@ const VERZOEK_STIJL = {
 const CATS = ["Educatie", "Technisch", "Koken", "Tuin", "Zorg", "Overig"];
 const inp  = { width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid #ddd", fontSize: 14, outline: "none", background: "#fafafa", boxSizing: "border-box", fontFamily: "inherit" };
 const card = { background: "#fff", borderRadius: 14, padding: "18px 20px", boxShadow: "0 2px 10px rgba(0,0,0,0.07)" };
+
+// ─── HCAPTCHA WIDGET ──────────────────────────────────────────────
+function HCaptcha({ id = "hcaptcha-widget", onVerify, onExpire }) {
+  useEffect(() => {
+    // Laad hCaptcha script als het nog niet geladen is
+    if (!document.getElementById("hcaptcha-script")) {
+      const script = document.createElement("script");
+      script.id = "hcaptcha-script";
+      script.src = "https://js.hcaptcha.com/1/api.js";
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+
+    // Render widget zodra script geladen is
+    function renderWidget() {
+      const el = document.getElementById(id);
+      if (!el || el.dataset.rendered) return;
+      if (window.hcaptcha) {
+        window.hcaptcha.render(el, {
+          sitekey: HCAPTCHA_SITE_KEY,
+          callback: onVerify,
+          "expired-callback": () => { if (onExpire) onExpire(); },
+          theme: "light",
+          size: "normal",
+        });
+        el.dataset.rendered = "true";
+      }
+    }
+
+    if (window.hcaptcha) {
+      renderWidget();
+    } else {
+      document.getElementById("hcaptcha-script").addEventListener("load", renderWidget);
+    }
+
+    return () => {
+      // Cleanup: reset widget bij unmount
+      const el = document.getElementById(id);
+      if (el) {
+        el.dataset.rendered = "";
+        el.innerHTML = "";
+      }
+    };
+  }, [id]);
+
+  return <div id={id} style={{ marginBottom: 16 }} />;
+}
 
 function ini(naam) {
   return (naam || "").trim().split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -276,6 +327,8 @@ export default function App() {
   const [cirkelForm,  setCirkelForm]  = useState({ naam: "", stad: "", code: "" });
   const [loginFout,   setLoginFout]   = useState("");
   const [aanmeldFout, setAanmeldFout] = useState("");
+  const [loginCaptcha,   setLoginCaptcha]   = useState(null);
+  const [aanmeldCaptcha, setAanmeldCaptcha] = useState(null);
 
   const cirkel           = cirkels.find(c => c.id === cirkelId) || null;
   const isBeheerder      = gebruiker?.rol === "beheerder" || gebruiker?.rol === "super_beheerder";
@@ -350,10 +403,11 @@ export default function App() {
   // ── AUTH ────────────────────────────────────────────────────────
   async function inloggen() {
     setLoginFout("");
+    if (!loginCaptcha) { setLoginFout("Bevestig dat je geen robot bent."); return; }
     setBezig(true);
     try {
       // 1. Supabase Auth sign-in → krijg JWT token
-      const authData = await api.signIn(loginForm.email.trim(), loginForm.wachtwoord);
+      const authData = await api.signIn(loginForm.email.trim(), loginForm.wachtwoord, loginCaptcha);
       authToken = authData.access_token;
 
       // 2. Haal profiel op via auth_id (uuid van Supabase Auth)
@@ -377,6 +431,8 @@ export default function App() {
       showToast("Welkom terug, " + acc.naam.split(" ")[0] + "!");
     } catch (e) {
       setLoginFout(e.message.includes("Invalid login") ? "E-mailadres of wachtwoord klopt niet." : "Fout: " + e.message);
+      setLoginCaptcha(null);
+      if (window.hcaptcha) window.hcaptcha.reset();
     } finally {
       setBezig(false);
     }
@@ -409,10 +465,11 @@ export default function App() {
     if (!/[^A-Za-z0-9]/.test(wachtwoord)) { setAanmeldFout("Wachtwoord moet minimaal 1 speciaal teken bevatten (bijv. ! @ # $)."); return; }
     if (!/^[0-9\s\+\-]{7,15}$/.test(telefoon.trim())) { setAanmeldFout("Voer een geldig telefoonnummer in."); return; }
     if (!cirkels.find(c => c.id === cId)) { setAanmeldFout("Onbekende buurtcirkelcode."); return; }
+    if (!aanmeldCaptcha) { setAanmeldFout("Bevestig dat je geen robot bent."); return; }
     setBezig(true);
     try {
       // 1. Maak Auth account aan bij Supabase
-      const authData = await api.signUp(email.trim(), wachtwoord);
+      const authData = await api.signUp(email.trim(), wachtwoord, aanmeldCaptcha);
       const authId = authData.user?.id;
       if (!authId) throw new Error("Aanmaken Auth account mislukt.");
 
@@ -436,6 +493,8 @@ export default function App() {
       showToast("Aanmelding verstuurd!");
     } catch (e) {
       setAanmeldFout(e.message.includes("already registered") ? "Dit e-mailadres is al in gebruik." : "Fout: " + e.message);
+      setAanmeldCaptcha(null);
+      if (window.hcaptcha) window.hcaptcha.reset("aanmeld-captcha");
     } finally {
       setBezig(false);
     }
@@ -693,7 +752,12 @@ export default function App() {
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>E-mailadres</label>
               <input value={loginForm.email} onChange={e => setLoginForm(p => ({ ...p, email: e.target.value }))} placeholder="jouw@email.nl" style={{ ...inp, marginBottom: 12 }} />
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>Wachtwoord</label>
-              <input type="password" value={loginForm.wachtwoord} onChange={e => setLoginForm(p => ({ ...p, wachtwoord: e.target.value }))} onKeyDown={e => e.key === "Enter" && inloggen()} placeholder="••••••••" style={{ ...inp, marginBottom: 20 }} />
+              <input type="password" value={loginForm.wachtwoord} onChange={e => setLoginForm(p => ({ ...p, wachtwoord: e.target.value }))} onKeyDown={e => e.key === "Enter" && inloggen()} placeholder="••••••••" style={{ ...inp, marginBottom: 16 }} />
+              <HCaptcha
+                id="login-captcha"
+                onVerify={token => setLoginCaptcha(token)}
+                onExpire={() => setLoginCaptcha(null)}
+              />
               <button type="button" onClick={inloggen} disabled={bezig} style={{ background: "#E8503A", color: "#fff", border: "none", padding: "12px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: bezig ? "not-allowed" : "pointer", width: "100%", marginBottom: 12, opacity: bezig ? 0.7 : 1 }}>
                 {bezig ? "Bezig..." : "Inloggen"}
               </button>
@@ -738,6 +802,11 @@ export default function App() {
                   </button>
                 ))}
               </div>
+              <HCaptcha
+                id="aanmeld-captcha"
+                onVerify={token => setAanmeldCaptcha(token)}
+                onExpire={() => setAanmeldCaptcha(null)}
+              />
               <button type="button" onClick={aanmelden} disabled={bezig} style={{ background: "#E8503A", color: "#fff", border: "none", padding: "12px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: bezig ? "not-allowed" : "pointer", width: "100%", opacity: bezig ? 0.7 : 1 }}>
                 {bezig ? "Bezig..." : "Aanmelding versturen"}
               </button>
