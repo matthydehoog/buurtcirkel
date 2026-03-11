@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const APP_VERSIE = "2.1.0";
+const APP_VERSIE = "2.2.0";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -393,7 +393,9 @@ export default function App() {
       setAanmeldFout("Vul alle velden in."); return;
     }
     if (wachtwoord !== herhaal) { setAanmeldFout("Wachtwoorden komen niet overeen."); return; }
-    if (wachtwoord.length < 6)  { setAanmeldFout("Wachtwoord moet minimaal 6 tekens zijn."); return; }
+    if (wachtwoord.length < 8)         { setAanmeldFout("Wachtwoord moet minimaal 8 tekens zijn."); return; }
+    if (!/[A-Z]/.test(wachtwoord))     { setAanmeldFout("Wachtwoord moet minimaal 1 hoofdletter bevatten."); return; }
+    if (!/[^A-Za-z0-9]/.test(wachtwoord)) { setAanmeldFout("Wachtwoord moet minimaal 1 speciaal teken bevatten (bijv. ! @ # $)."); return; }
     if (!/^[0-9\s\+\-]{7,15}$/.test(telefoon.trim())) { setAanmeldFout("Voer een geldig telefoonnummer in."); return; }
     if (!cirkels.find(c => c.id === cId)) { setAanmeldFout("Onbekende buurtcirkelcode."); return; }
     setBezig(true);
@@ -695,7 +697,7 @@ export default function App() {
                 { label: "Volledige naam", key: "naam", ph: "Voor- en achternaam", type: "text" },
                 { label: "E-mailadres", key: "email", ph: "jouw@email.nl", type: "text" },
                 { label: "Mobiel telefoonnummer", key: "telefoon", ph: "bijv. 06 12345678", type: "text" },
-                { label: "Wachtwoord", key: "wachtwoord", ph: "Minimaal 6 tekens", type: "password" },
+                { label: "Wachtwoord", key: "wachtwoord", ph: "Min. 8 tekens, 1 hoofdletter, 1 speciaal teken", type: "password" },
                 { label: "Herhaal wachtwoord", key: "herhaal", ph: "Nogmaals je wachtwoord", type: "password" },
               ].map(f => (
                 <div key={f.key}>
