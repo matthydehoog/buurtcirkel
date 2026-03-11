@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const APP_VERSIE = "2.2.0";
+const APP_VERSIE = "2.3.0";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -77,6 +77,9 @@ const api = {
   getMijnVerzoeken:     (aanvragerId) => sb(`verzoeken?select=*&aanvrager_id=eq.${aanvragerId}&order=datum.desc`),
   insertVerzoek:        (row)         => sb("verzoeken", { method: "POST", body: JSON.stringify(row) }),
   updateVerzoek:        (id, patch)   => sb(`verzoeken?id=eq.${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+
+  // Alle wachtende accounts (voor super beheerder)
+  getAlleWachtenden: () => sb("accounts?select=*&status=eq.wacht&order=naam"),
 
   // Beheerder-cirkels
   getBeheerderCirkels:  (beheerderId) => sb(`beheerder_cirkels?select=cirkel_id&beheerder_id=eq.${beheerderId}`),
@@ -251,7 +254,8 @@ export default function App() {
   const [scherm, setScherm]           = useState("login");
   const [cirkels, setCirkels]         = useState([]);
   const [cirkelId, setCirkelId]       = useState(null);
-  const [mijnCirkels, setMijnCirkels] = useState([]); // voor beheerder: alle beheerde cirkels
+  const [mijnCirkels, setMijnCirkels]       = useState([]); // voor beheerder: alle beheerde cirkels
+  const [superWachtenden, setSuperWachtenden] = useState([]); // alle wachtende accounts (super beheerder)
   const [leden, setLeden]             = useState([]);
   const [diensten, setDiensten]       = useState([]);
   const [verzoeken, setVerzoeken]     = useState([]); // inkomende verzoeken voor mijn diensten
@@ -336,6 +340,13 @@ export default function App() {
     }
   }
 
+  async function laadSuperWachtenden() {
+    try {
+      const data = await api.getAlleWachtenden();
+      setSuperWachtenden(data);
+    } catch (e) { console.error("Wachtenden laden mislukt:", e.message); }
+  }
+
   // ── AUTH ────────────────────────────────────────────────────────
   async function inloggen() {
     setLoginFout("");
@@ -355,7 +366,7 @@ export default function App() {
 
       setGebruiker(acc);
       if (acc.rol === "super_beheerder") {
-        await laadCirkels();
+        await Promise.all([laadCirkels(), laadSuperWachtenden()]);
         setScherm("superBeheer");
         showToast("Welkom, " + acc.naam.split(" ")[0] + "!");
         return;
@@ -426,6 +437,7 @@ export default function App() {
     try {
       await api.updateAccount(id, { status: "actief" });
       setLeden(prev => prev.map(l => l.id === id ? { ...l, status: "actief" } : l));
+      setSuperWachtenden(prev => prev.filter(l => l.id !== id));
       showToast("Lid goedgekeurd!");
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
   }
@@ -434,6 +446,7 @@ export default function App() {
     try {
       await api.updateAccount(id, { status: "afgewezen" });
       setLeden(prev => prev.map(l => l.id === id ? { ...l, status: "afgewezen" } : l));
+      setSuperWachtenden(prev => prev.filter(l => l.id !== id));
       showToast("Aanmelding afgewezen.");
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
   }
@@ -613,8 +626,9 @@ export default function App() {
               {/* Super beheerder navigatie */}
               {isSuperBeheerder ? (
                 <>
-                  <button type="button" onClick={() => setScherm("superBeheer")} style={{ background: scherm === "superBeheer" ? "#E8503A" : "rgba(255,255,255,0.12)", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                  <button type="button" onClick={() => setScherm("superBeheer")} style={{ background: scherm === "superBeheer" || scherm === "superGoedkeuren" ? "#E8503A" : "rgba(255,255,255,0.12)", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", position: "relative" }}>
                     Super beheer
+                    {superWachtenden.length > 0 && <span style={{ position: "absolute", top: -6, right: -6, background: "#F5A623", color: "#fff", fontSize: 10, fontWeight: 700, width: 17, height: 17, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #1a1a2e" }}>{superWachtenden.length}</span>}
                   </button>
                   <button type="button" onClick={() => setScherm("nieuweCirkel")} style={{ background: scherm === "nieuweCirkel" ? "#E8503A" : "rgba(255,255,255,0.12)", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                     + Cirkel
@@ -972,7 +986,15 @@ export default function App() {
         {/* ══ SUPER BEHEER ══ */}
         {scherm === "superBeheer" && isSuperBeheerder && (
           <div>
-            <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 6 }}>Super beheer</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, flexWrap: "wrap", gap: 10 }}>
+              <h2 style={{ fontWeight: 900, fontSize: 22 }}>Super beheer</h2>
+              {superWachtenden.length > 0 && (
+                <button type="button" onClick={() => setScherm("superGoedkeuren")} style={{ background: "#FFF3CD", color: "#856404", border: "1px solid #F5A623", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                  ⏳ Aanmeldingen goedkeuren
+                  <span style={{ background: "#E8503A", color: "#fff", fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 20 }}>{superWachtenden.length}</span>
+                </button>
+              )}
+            </div>
             <p style={{ color: "#999", fontSize: 13, marginBottom: 20 }}>Overzicht van alle buurtcirkels en beheerders. Koppel cirkels aan beheerders.</p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -989,6 +1011,42 @@ export default function App() {
               {cirkels.length === 0 && (
                 <div style={{ ...card, color: "#bbb", textAlign: "center", padding: 24 }}>Nog geen buurtcirkels aangemaakt</div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ══ SUPER GOEDKEUREN ══ */}
+        {scherm === "superGoedkeuren" && isSuperBeheerder && (
+          <div>
+            <button type="button" onClick={() => setScherm("superBeheer")} style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 14, marginBottom: 18 }}>&#8592; Terug</button>
+            <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 6 }}>Aanmeldingen goedkeuren</h2>
+            <p style={{ color: "#999", fontSize: 13, marginBottom: 20 }}>Alle wachtende aanmeldingen over alle buurtcirkels.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {superWachtenden.length === 0 ? (
+                <div style={{ ...card, color: "#bbb", textAlign: "center", padding: 24 }}>Geen wachtende aanmeldingen</div>
+              ) : superWachtenden.map(lid => {
+                const cirkelNaam = cirkels.find(c => c.id === lid.cirkel_id);
+                return (
+                  <div key={lid.id} style={{ ...card, borderLeft: "4px solid #F5A623" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                      <Avatar tekst={ini(lid.naam)} size={40} kleur="#F5A623" />
+                      <div style={{ flex: 1, minWidth: 120 }}>
+                        <div style={{ fontWeight: 700, fontSize: 15 }}>{lid.naam}</div>
+                        <div style={{ fontSize: 13, color: "#999" }}>{lid.email}</div>
+                        {lid.telefoon && <div style={{ fontSize: 13, color: "#999" }}>📱 {lid.telefoon}</div>}
+                        <div style={{ fontSize: 12, marginTop: 3 }}>
+                          <span style={{ background: "#f0f0f0", color: "#555", padding: "2px 8px", borderRadius: 20, fontFamily: "monospace" }}>{lid.cirkel_id}</span>
+                          {cirkelNaam && <span style={{ color: "#aaa", fontSize: 12, marginLeft: 6 }}>{cirkelNaam.naam}</span>}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <button type="button" onClick={() => lidGoedkeuren(lid.id)} style={{ background: "#27ae60", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Goedkeuren</button>
+                        <button type="button" onClick={() => lidAfwijzen(lid.id)} style={{ background: "#e74c3c", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Afwijzen</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
