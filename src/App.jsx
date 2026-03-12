@@ -1,13 +1,11 @@
-import { useState, useEffect } from "react";
-
-const APP_VERSIE = "2.4.0";
+const APP_VERSIE = "2.5.0";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Lxs6J-YBpbBl0sQ6XBZjMA_R0_P9i_n";
 
 // ─── HCAPTCHA ─────────────────────────────────────────────────────
-const HCAPTCHA_SITE_KEY = "614ebf34-5346-49ca-9578-0932eb0a6f3a"; // ← vervang dit
+const HCAPTCHA_SITE_KEY = "ef56a732-ebfc-459e-9b72-ffbc5e0e8a0e"; // ← vervang dit
 
 // Actieve Auth sessie (token wordt na login ingesteld)
 let authToken = null;
@@ -52,6 +50,11 @@ const api = {
   // Auth
   signUp:  (email, wachtwoord, captchaToken) => authFetch("signup",  { email, password: wachtwoord, gotrue_meta_security: { captcha_token: captchaToken } }),
   signIn:  (email, wachtwoord, captchaToken) => authFetch("token?grant_type=password", { email, password: wachtwoord, gotrue_meta_security: { captcha_token: captchaToken } }),
+  updatePassword: (nieuwWachtwoord) => fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    method: "PUT",
+    headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${authToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ password: nieuwWachtwoord }),
+  }).then(r => r.json()),
   signOut: () => fetch(`${SUPABASE_URL}/auth/v1/logout`, {
     method: "POST",
     headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${authToken}` },
@@ -300,7 +303,7 @@ function SuperCirkelKaart({ cirkel, onKoppel, onVerwijder, showToast, sb }) {
 }
 
 // ─── HOOFD APP ────────────────────────────────────────────────────
-export default function App() {
+function App() {
   const [gebruiker, setGebruiker]     = useState(null);
   const [scherm, setScherm]           = useState("login");
   const [cirkels, setCirkels]         = useState([]);
@@ -329,6 +332,9 @@ export default function App() {
   const [aanmeldFout, setAanmeldFout] = useState("");
   const [loginCaptcha,   setLoginCaptcha]   = useState(null);
   const [aanmeldCaptcha, setAanmeldCaptcha] = useState(null);
+  const [wijzigForm, setWijzigForm]         = useState({ huidig: "", nieuw: "", herhaal: "" });
+  const [wijzigFout, setWijzigFout]         = useState("");
+  const [wijzigModal, setWijzigModal]       = useState(false);
 
   const cirkel           = cirkels.find(c => c.id === cirkelId) || null;
   const isBeheerder      = gebruiker?.rol === "beheerder" || gebruiker?.rol === "super_beheerder";
@@ -433,6 +439,31 @@ export default function App() {
       setLoginFout(e.message.includes("Invalid login") ? "E-mailadres of wachtwoord klopt niet." : "Fout: " + e.message);
       setLoginCaptcha(null);
       if (window.hcaptcha) window.hcaptcha.reset();
+    } finally {
+      setBezig(false);
+    }
+  }
+
+  async function wachtwoordWijzigen() {
+    setWijzigFout("");
+    const { huidig, nieuw, herhaal } = wijzigForm;
+    if (!huidig || !nieuw || !herhaal)           { setWijzigFout("Vul alle velden in."); return; }
+    if (nieuw !== herhaal)                        { setWijzigFout("Nieuwe wachtwoorden komen niet overeen."); return; }
+    if (nieuw.length < 8)                         { setWijzigFout("Wachtwoord moet minimaal 8 tekens zijn."); return; }
+    if (!/[A-Z]/.test(nieuw))                     { setWijzigFout("Wachtwoord moet minimaal 1 hoofdletter bevatten."); return; }
+    if (!/[^A-Za-z0-9]/.test(nieuw))             { setWijzigFout("Wachtwoord moet minimaal 1 speciaal teken bevatten."); return; }
+    setBezig(true);
+    try {
+      // Verifieer huidig wachtwoord door opnieuw in te loggen
+      await api.signIn(gebruiker.email, huidig);
+      // Wachtwoord bijwerken via Supabase Auth
+      const result = await api.updatePassword(nieuw);
+      if (result.error) throw new Error(result.error.message || result.msg || "Fout bij wijzigen");
+      setWijzigModal(false);
+      setWijzigForm({ huidig: "", nieuw: "", herhaal: "" });
+      showToast("Wachtwoord gewijzigd!");
+    } catch (e) {
+      setWijzigFout(e.message.includes("Invalid login") ? "Huidig wachtwoord klopt niet." : "Fout: " + e.message);
     } finally {
       setBezig(false);
     }
@@ -722,6 +753,7 @@ export default function App() {
               <span style={{ color: "#fff", fontSize: 13, fontWeight: 600, opacity: 0.85, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {gebruiker.naam.split(" ")[0]}
               </span>
+              <button type="button" onClick={() => { setWijzigModal(true); setWijzigFout(""); }} style={{ background: "none", color: "#aaa", border: "1px solid #444", padding: "5px 10px", borderRadius: 20, fontSize: 11, cursor: "pointer" }}>🔑</button>
               <button type="button" onClick={uitloggen} style={{ background: "none", color: "#aaa", border: "1px solid #444", padding: "5px 10px", borderRadius: 20, fontSize: 11, cursor: "pointer" }}>Uit</button>
               <Avatar tekst={ini(gebruiker.naam)} size={30} kleur={isSuperBeheerder ? "#6C3FC5" : (cirkel?.kleur || "#E8503A")} />
             </>
@@ -1172,6 +1204,38 @@ export default function App() {
         )}
       </div>
 
+      {/* ── WACHTWOORD WIJZIGEN MODAL ── */}
+      <Modal open={wijzigModal} onClose={() => { setWijzigModal(false); setWijzigForm({ huidig: "", nieuw: "", herhaal: "" }); setWijzigFout(""); }}>
+        <div>
+          <div style={{ fontWeight: 900, fontSize: 20, marginBottom: 6 }}>Wachtwoord wijzigen</div>
+          <p style={{ color: "#666", fontSize: 14, marginBottom: 20 }}>Voer je huidige wachtwoord in en kies een nieuw wachtwoord.</p>
+          {wijzigFout && <div style={{ background: "#fff0f0", color: "#c0392b", padding: "10px 14px", borderRadius: 8, fontSize: 13, marginBottom: 14, border: "1px solid #fcc" }}>{wijzigFout}</div>}
+          {[
+            { label: "Huidig wachtwoord", key: "huidig" },
+            { label: "Nieuw wachtwoord", key: "nieuw" },
+            { label: "Herhaal nieuw wachtwoord", key: "herhaal" },
+          ].map(f => (
+            <div key={f.key}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>{f.label}</label>
+              <input
+                type="password"
+                value={wijzigForm[f.key]}
+                onChange={e => setWijzigForm(p => ({ ...p, [f.key]: e.target.value }))}
+                placeholder="••••••••"
+                style={{ ...inp, marginBottom: 12 }}
+              />
+            </div>
+          ))}
+          <div style={{ fontSize: 12, color: "#aaa", marginBottom: 18 }}>Min. 8 tekens, 1 hoofdletter, 1 speciaal teken</div>
+          <button type="button" onClick={wachtwoordWijzigen} disabled={bezig} style={{ background: "#E8503A", color: "#fff", border: "none", padding: "11px", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: bezig ? "not-allowed" : "pointer", width: "100%", marginBottom: 8, opacity: bezig ? 0.7 : 1 }}>
+            {bezig ? "Bezig..." : "Wachtwoord wijzigen"}
+          </button>
+          <button type="button" onClick={() => { setWijzigModal(false); setWijzigForm({ huidig: "", nieuw: "", herhaal: "" }); setWijzigFout(""); }} style={{ background: "#eee", color: "#555", border: "none", padding: "11px", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer", width: "100%" }}>
+            Annuleren
+          </button>
+        </div>
+      </Modal>
+
       {/* ── VERZOEK MODAL ── */}
       <Modal open={!!verzoekModal} onClose={() => setVerzoekModal(null)}>
         {verzoekModal && (
@@ -1197,3 +1261,9 @@ export default function App() {
     </div>
   );
 }
+
+
+// ── PWA: mount React app ──────────────────────────────────────────
+const { useState, useEffect } = React;
+const rootEl = document.getElementById("root");
+ReactDOM.createRoot(rootEl).render(React.createElement(App));
