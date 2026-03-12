@@ -1,4 +1,4 @@
-const APP_VERSIE = "2.6.0";
+const APP_VERSIE = "2.7.0";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -86,6 +86,11 @@ const api = {
 
   // Alle wachtende accounts (voor super beheerder)
   getAlleWachtenden: () => sb("accounts?select=*&status=eq.wacht&order=naam"),
+
+  // Login pogingen
+  getLoginPoging:    (email) => sb(`login_pogingen?select=*&email=eq.${encodeURIComponent(email)}`),
+  upsertLoginPoging: (row)   => sb("login_pogingen", { method: "POST", body: JSON.stringify(row), prefer: "resolution=merge-duplicates,return=representation" }),
+  resetLoginPoging:  (email) => sb(`login_pogingen?email=eq.${encodeURIComponent(email)}`, { method: "PATCH", body: JSON.stringify({ pogingen: 0, geblokkerd_tot: null }) }),
 
   // Beheerder-cirkels
   getBeheerderCirkels:  (beheerderId) => sb(`beheerder_cirkels?select=cirkel_id&beheerder_id=eq.${beheerderId}`),
@@ -332,7 +337,6 @@ function App() {
   const [aanmeldFout, setAanmeldFout] = useState("");
   const [loginCaptcha,   setLoginCaptcha]   = useState(null);
   const [aanmeldCaptcha, setAanmeldCaptcha] = useState(null);
-  const [loginPogingen,  setLoginPogingen]  = useState({}); // { email: { pogingen, geblokkerdTot } }
   const [wijzigForm, setWijzigForm]         = useState({ huidig: "", nieuw: "", herhaal: "" });
   const [wijzigFout, setWijzigFout]         = useState("");
   const [wijzigModal, setWijzigModal]       = useState(false);
@@ -412,26 +416,27 @@ function App() {
     setLoginFout("");
     if (!loginCaptcha) { setLoginFout("Bevestig dat je geen robot bent."); return; }
 
-    // ── Blokkering controleren ──────────────────────────────────
     const email = loginForm.email.trim().toLowerCase();
-    const poging = loginPogingen[email] || { pogingen: 0, geblokkerdTot: null };
-    if (poging.geblokkerdTot && Date.now() < poging.geblokkerdTot) {
-      const seconden = Math.ceil((poging.geblokkerdTot - Date.now()) / 1000);
-      const minuten  = Math.ceil(seconden / 60);
-      setLoginFout(`Te veel mislukte pogingen. Probeer het over ${minuten} minuut${minuten !== 1 ? "en" : ""} opnieuw.`);
-      return;
-    }
-
     setBezig(true);
     try {
-      // 1. Supabase Auth sign-in → krijg JWT token
+      // ── 1. Blokkering controleren in database ─────────────────
+      const pogingData = await api.getLoginPoging(email);
+      const poging = pogingData[0] || null;
+      if (poging?.geblokkerd_tot && new Date(poging.geblokkerd_tot) > new Date()) {
+        const seconden = Math.ceil((new Date(poging.geblokkerd_tot) - Date.now()) / 1000);
+        const minuten  = Math.ceil(seconden / 60);
+        setLoginFout(`Te veel mislukte pogingen. Probeer het over ${minuten} minuut${minuten !== 1 ? "en" : ""} opnieuw.`);
+        return;
+      }
+
+      // ── 2. Supabase Auth sign-in → krijg JWT token ────────────
       const authData = await api.signIn(email, loginForm.wachtwoord, loginCaptcha);
       authToken = authData.access_token;
 
       // Inloggen geslaagd → pogingen resetten
-      setLoginPogingen(prev => ({ ...prev, [email]: { pogingen: 0, geblokkerdTot: null } }));
+      await api.resetLoginPoging(email);
 
-      // 2. Haal profiel op via auth_id (uuid van Supabase Auth)
+      // ── 3. Haal profiel op via auth_id ────────────────────────
       const profielen = await api.getProfiel(authData.user.id);
       const acc = profielen[0];
       if (!acc) { setLoginFout("Geen profiel gevonden. Neem contact op met de beheerder."); authToken = null; return; }
@@ -453,19 +458,29 @@ function App() {
     } catch (e) {
       const isVerkeerd = e.message.includes("Invalid login");
       if (isVerkeerd) {
-        // ── Mislukte poging registreren ──────────────────────────
-        setLoginPogingen(prev => {
-          const huidig = prev[email] || { pogingen: 0, geblokkerdTot: null };
-          const nieuwePogingen = huidig.pogingen + 1;
-          const geblokkerd = nieuwePogingen >= 3 ? Date.now() + 5 * 60 * 1000 : null;
+        // ── Mislukte poging opslaan in database ───────────────────
+        try {
+          const huidigData = await api.getLoginPoging(email);
+          const huidig = huidigData[0] || { pogingen: 0 };
+          const nieuwePogingen = (huidig.pogingen || 0) + 1;
+          const geblokkerdTot  = nieuwePogingen >= 3
+            ? new Date(Date.now() + 5 * 60 * 1000).toISOString()
+            : null;
+          await api.upsertLoginPoging({
+            email,
+            pogingen: nieuwePogingen,
+            geblokkerd_tot: geblokkerdTot,
+            laatste_poging: new Date().toISOString(),
+          });
           const resterend = 3 - nieuwePogingen;
-          if (geblokkerd) {
+          if (geblokkerdTot) {
             setLoginFout("Te veel mislukte pogingen. Account is 5 minuten geblokkeerd.");
           } else {
             setLoginFout(`E-mailadres of wachtwoord klopt niet. Nog ${resterend} poging${resterend !== 1 ? "en" : ""} voor blokkering.`);
           }
-          return { ...prev, [email]: { pogingen: nieuwePogingen, geblokkerdTot: geblokkerd } };
-        });
+        } catch (_) {
+          setLoginFout("E-mailadres of wachtwoord klopt niet.");
+        }
       } else {
         setLoginFout("Fout: " + e.message);
       }
