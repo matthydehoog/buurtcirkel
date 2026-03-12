@@ -308,7 +308,7 @@ function SuperCirkelKaart({ cirkel, onKoppel, onVerwijder, showToast, sb }) {
 }
 
 // ─── HOOFD APP ────────────────────────────────────────────────────
-function App() {
+export default function App() {
   const [gebruiker, setGebruiker]     = useState(null);
   const [scherm, setScherm]           = useState("login");
   const [cirkels, setCirkels]         = useState([]);
