@@ -1,4 +1,4 @@
-const APP_VERSIE = "2.5.0";
+const APP_VERSIE = "2.6.0";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -332,6 +332,7 @@ function App() {
   const [aanmeldFout, setAanmeldFout] = useState("");
   const [loginCaptcha,   setLoginCaptcha]   = useState(null);
   const [aanmeldCaptcha, setAanmeldCaptcha] = useState(null);
+  const [loginPogingen,  setLoginPogingen]  = useState({}); // { email: { pogingen, geblokkerdTot } }
   const [wijzigForm, setWijzigForm]         = useState({ huidig: "", nieuw: "", herhaal: "" });
   const [wijzigFout, setWijzigFout]         = useState("");
   const [wijzigModal, setWijzigModal]       = useState(false);
@@ -410,11 +411,25 @@ function App() {
   async function inloggen() {
     setLoginFout("");
     if (!loginCaptcha) { setLoginFout("Bevestig dat je geen robot bent."); return; }
+
+    // ── Blokkering controleren ──────────────────────────────────
+    const email = loginForm.email.trim().toLowerCase();
+    const poging = loginPogingen[email] || { pogingen: 0, geblokkerdTot: null };
+    if (poging.geblokkerdTot && Date.now() < poging.geblokkerdTot) {
+      const seconden = Math.ceil((poging.geblokkerdTot - Date.now()) / 1000);
+      const minuten  = Math.ceil(seconden / 60);
+      setLoginFout(`Te veel mislukte pogingen. Probeer het over ${minuten} minuut${minuten !== 1 ? "en" : ""} opnieuw.`);
+      return;
+    }
+
     setBezig(true);
     try {
       // 1. Supabase Auth sign-in → krijg JWT token
-      const authData = await api.signIn(loginForm.email.trim(), loginForm.wachtwoord, loginCaptcha);
+      const authData = await api.signIn(email, loginForm.wachtwoord, loginCaptcha);
       authToken = authData.access_token;
+
+      // Inloggen geslaagd → pogingen resetten
+      setLoginPogingen(prev => ({ ...prev, [email]: { pogingen: 0, geblokkerdTot: null } }));
 
       // 2. Haal profiel op via auth_id (uuid van Supabase Auth)
       const profielen = await api.getProfiel(authData.user.id);
@@ -436,7 +451,24 @@ function App() {
       setScherm("cirkel");
       showToast("Welkom terug, " + acc.naam.split(" ")[0] + "!");
     } catch (e) {
-      setLoginFout(e.message.includes("Invalid login") ? "E-mailadres of wachtwoord klopt niet." : "Fout: " + e.message);
+      const isVerkeerd = e.message.includes("Invalid login");
+      if (isVerkeerd) {
+        // ── Mislukte poging registreren ──────────────────────────
+        setLoginPogingen(prev => {
+          const huidig = prev[email] || { pogingen: 0, geblokkerdTot: null };
+          const nieuwePogingen = huidig.pogingen + 1;
+          const geblokkerd = nieuwePogingen >= 3 ? Date.now() + 5 * 60 * 1000 : null;
+          const resterend = 3 - nieuwePogingen;
+          if (geblokkerd) {
+            setLoginFout("Te veel mislukte pogingen. Account is 5 minuten geblokkeerd.");
+          } else {
+            setLoginFout(`E-mailadres of wachtwoord klopt niet. Nog ${resterend} poging${resterend !== 1 ? "en" : ""} voor blokkering.`);
+          }
+          return { ...prev, [email]: { pogingen: nieuwePogingen, geblokkerdTot: geblokkerd } };
+        });
+      } else {
+        setLoginFout("Fout: " + e.message);
+      }
       setLoginCaptcha(null);
       if (window.hcaptcha) window.hcaptcha.reset();
     } finally {
