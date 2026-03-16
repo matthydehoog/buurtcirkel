@@ -100,23 +100,102 @@ const api = {
   insertBeheerderCirkel:(row)         => sb("beheerder_cirkels", { method: "POST", body: JSON.stringify(row) }),
 };
 
-// ─── STIJL ────────────────────────────────────────────────────────
+// ─── DESIGN SYSTEEM ───────────────────────────────────────────────
+const T = {
+  // Kleuren
+  bg:       "#F7F8FA",
+  surface:  "#FFFFFF",
+  border:   "#EAECF0",
+  accent:   "#E8503A",
+  accentDk: "#C93E2A",
+  dark:     "#0F1117",
+  muted:    "#6B7280",
+  mutedLt:  "#9CA3AF",
+  success:  "#059669",
+  warning:  "#D97706",
+  danger:   "#DC2626",
+  // Typografie
+  fontDisplay: "'DM Sans', -apple-system, sans-serif",
+  // Radii
+  r:   "10px",
+  rLg: "16px",
+  rXl: "20px",
+};
+
+// CSS globaal injecteren
+if (!document.getElementById("bc-global-style")) {
+  const s = document.createElement("style");
+  s.id = "bc-global-style";
+  s.textContent = `
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', -apple-system, sans-serif; background: ${T.bg}; color: ${T.dark}; -webkit-font-smoothing: antialiased; }
+    input, select, textarea, button { font-family: inherit; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid ${T.accent}; outline-offset: 1px; border-color: ${T.accent} !important; }
+    button { transition: opacity 0.15s, transform 0.1s; }
+    button:active { transform: scale(0.97); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .bc-fade { animation: fadeIn 0.2s ease; }
+    ::-webkit-scrollbar { width: 6px; } 
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+  `;
+  document.head.appendChild(s);
+}
+
 const CAT_STIJL = {
-  Educatie:  { bg: "#FFF3CD", text: "#856404" },
-  Technisch: { bg: "#D1ECF1", text: "#0C5460" },
-  Koken:     { bg: "#F8D7DA", text: "#721C24" },
-  Tuin:      { bg: "#D4EDDA", text: "#155724" },
-  Zorg:      { bg: "#E2D9F3", text: "#4A235A" },
-  Overig:    { bg: "#F0F0F0", text: "#555555" },
+  Educatie:  { bg: "#FEF9C3", text: "#854D0E" },
+  Technisch: { bg: "#DBEAFE", text: "#1E40AF" },
+  Koken:     { bg: "#FCE7F3", text: "#9D174D" },
+  Tuin:      { bg: "#DCFCE7", text: "#166534" },
+  Zorg:      { bg: "#EDE9FE", text: "#5B21B6" },
+  Overig:    { bg: "#F3F4F6", text: "#374151" },
 };
 const VERZOEK_STIJL = {
-  wacht:     { bg: "#FFF3CD", text: "#856404", label: "Wacht" },
-  geaccepteerd: { bg: "#D4EDDA", text: "#155724", label: "Geaccepteerd" },
-  afgewezen: { bg: "#F8D7DA", text: "#721C24", label: "Afgewezen" },
+  wacht:        { bg: "#FEF9C3", text: "#854D0E",  label: "Wacht" },
+  geaccepteerd: { bg: "#DCFCE7", text: "#166534",  label: "Geaccepteerd" },
+  afgewezen:    { bg: "#FEE2E2", text: "#991B1B",  label: "Afgewezen" },
 };
 const CATS = ["Educatie", "Technisch", "Koken", "Tuin", "Zorg", "Overig"];
-const inp  = { width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid #ddd", fontSize: 14, outline: "none", background: "#fafafa", boxSizing: "border-box", fontFamily: "inherit" };
-const card = { background: "#fff", borderRadius: 14, padding: "18px 20px", boxShadow: "0 2px 10px rgba(0,0,0,0.07)" };
+
+const inp = {
+  width: "100%", padding: "11px 14px", borderRadius: T.r,
+  border: `1.5px solid ${T.border}`, fontSize: 14, outline: "none",
+  background: T.surface, boxSizing: "border-box", color: T.dark,
+  transition: "border-color 0.15s",
+};
+const card = {
+  background: T.surface, borderRadius: T.rLg, padding: "20px",
+  border: `1px solid ${T.border}`,
+  boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+};
+const btnPrimary = {
+  background: T.accent, color: "#fff", border: "none",
+  padding: "12px 20px", borderRadius: T.r, fontSize: 15,
+  fontWeight: 700, cursor: "pointer", width: "100%",
+};
+const btnSecondary = {
+  background: T.bg, color: T.dark, border: `1.5px solid ${T.border}`,
+  padding: "11px 20px", borderRadius: T.r, fontSize: 14,
+  fontWeight: 600, cursor: "pointer", width: "100%",
+};
+const badge = (bg, text) => ({
+  background: bg, color: text, fontSize: 11, fontWeight: 700,
+  padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap",
+  letterSpacing: "0.02em",
+});
+const foutBox = {
+  background: "#FEF2F2", color: T.danger, padding: "11px 14px",
+  borderRadius: T.r, fontSize: 13, marginBottom: 14,
+  border: `1px solid #FECACA`,
+};
+const label = {
+  display: "block", fontSize: 12, fontWeight: 700,
+  color: T.muted, marginBottom: 6, textTransform: "uppercase",
+  letterSpacing: "0.05em",
+};
+
 
 // ─── HCAPTCHA WIDGET ──────────────────────────────────────────────
 function HCaptcha({ id = "hcaptcha-widget", onVerify, onExpire }) {
@@ -173,7 +252,7 @@ function ini(naam) {
 // ─── UI HELPERS ───────────────────────────────────────────────────
 function Avatar({ tekst, size = 40, kleur = "#888" }) {
   return (
-    <div style={{ width: size, height: size, borderRadius: "50%", background: kleur, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: size * 0.35, flexShrink: 0 }}>
+    <div style={{ width: size, height: size, borderRadius: "50%", background: kleur, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: size * 0.33, flexShrink: 0, letterSpacing: "-0.5px" }}>
       {tekst}
     </div>
   );
@@ -181,8 +260,8 @@ function Avatar({ tekst, size = 40, kleur = "#888" }) {
 
 function Toast({ msg, type = "ok" }) {
   return (
-    <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: type === "fout" ? "#c0392b" : "#1a1a2e", color: "#fff", padding: "10px 22px", borderRadius: 30, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.3)", whiteSpace: "nowrap" }}>
-      {msg}
+    <div style={{ position: "fixed", top: 24, left: "50%", transform: "translateX(-50%)", background: type === "fout" ? T.danger : T.dark, color: "#fff", padding: "11px 24px", borderRadius: 30, fontSize: 14, fontWeight: 600, zIndex: 9999, boxShadow: "0 8px 24px rgba(0,0,0,0.2)", whiteSpace: "nowrap", animation: "fadeIn 0.2s ease" }}>
+      {type === "fout" ? "✕ " : "✓ "}{msg}
     </div>
   );
 }
@@ -190,8 +269,8 @@ function Toast({ msg, type = "ok" }) {
 function Modal({ open, onClose, children }) {
   if (!open) return null;
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, padding: 28, maxWidth: 480, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", maxHeight: "90vh", overflowY: "auto" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: T.rXl, padding: "28px 24px", maxWidth: 480, width: "100%", boxShadow: "0 24px 64px rgba(0,0,0,0.18)", maxHeight: "90vh", overflowY: "auto", animation: "fadeIn 0.2s ease" }}>
         {children}
       </div>
     </div>
@@ -200,23 +279,23 @@ function Modal({ open, onClose, children }) {
 
 function Spinner() {
   return (
-    <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
-      <div style={{ width: 36, height: 36, border: "3px solid #eee", borderTop: "3px solid #E8503A", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <div style={{ display: "flex", justifyContent: "center", padding: "56px 0" }}>
+      <div style={{ width: 32, height: 32, border: `3px solid ${T.border}`, borderTop: `3px solid ${T.accent}`, borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
     </div>
   );
 }
 
 function Foutmelding({ tekst, onHerlaad }) {
   return (
-    <div style={{ ...card, textAlign: "center", padding: 32, color: "#c0392b" }}>
-      <div style={{ fontSize: 32, marginBottom: 10 }}>⚠️</div>
-      <div style={{ fontWeight: 700, marginBottom: 6 }}>Verbindingsfout</div>
-      <div style={{ fontSize: 13, color: "#888", marginBottom: 16 }}>{tekst}</div>
-      {onHerlaad && <button type="button" onClick={onHerlaad} style={{ background: "#E8503A", color: "#fff", border: "none", padding: "9px 20px", borderRadius: 10, cursor: "pointer", fontWeight: 600 }}>Opnieuw proberen</button>}
+    <div style={{ ...card, textAlign: "center", padding: 32 }}>
+      <div style={{ fontSize: 28, marginBottom: 10 }}>⚠️</div>
+      <div style={{ fontWeight: 700, marginBottom: 6, color: T.danger }}>Verbindingsfout</div>
+      <div style={{ fontSize: 13, color: T.muted, marginBottom: 16 }}>{tekst}</div>
+      {onHerlaad && <button type="button" onClick={onHerlaad} style={{ ...btnPrimary, width: "auto", padding: "9px 20px" }}>Opnieuw proberen</button>}
     </div>
   );
 }
+
 
 // ─── SUPER CIRKEL KAART (sub-component) ───────────────────────────
 function SuperCirkelKaart({ cirkel, onKoppel, onVerwijder, showToast, sb }) {
@@ -258,31 +337,33 @@ function SuperCirkelKaart({ cirkel, onKoppel, onVerwijder, showToast, sb }) {
   }
 
   return (
-    <div style={{ background: "#fff", borderRadius: 14, padding: "18px 20px", boxShadow: "0 2px 10px rgba(0,0,0,0.07)", borderLeft: "5px solid " + cirkel.kleur }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
+    <div style={{ ...card, borderLeft: `4px solid ${cirkel.kleur}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 17 }}>{cirkel.naam}</div>
-          <div style={{ fontSize: 13, color: "#999" }}>{cirkel.stad} · <span style={{ fontFamily: "monospace", background: "#f0f0f0", padding: "1px 6px", borderRadius: 4 }}>{cirkel.id}</span></div>
+          <div style={{ fontWeight: 700, fontSize: 15, letterSpacing: "-0.2px" }}>{cirkel.naam}</div>
+          <div style={{ fontSize: 13, color: T.muted, marginTop: 2 }}>
+            {cirkel.stad} · <span style={{ fontFamily: "monospace", background: T.bg, padding: "1px 7px", borderRadius: 4, border: `1px solid ${T.border}`, fontSize: 12 }}>{cirkel.id}</span>
+          </div>
         </div>
-        <button type="button" onClick={() => onVerwijder(cirkel.id)} style={{ background: "#fee", color: "#c0392b", border: "1px solid #fcc", padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+        <button type="button" onClick={() => onVerwijder(cirkel.id)} style={{ background: "#FEF2F2", color: T.danger, border: `1px solid #FECACA`, padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
           Verwijderen
         </button>
       </div>
 
       {laden ? (
-        <div style={{ fontSize: 13, color: "#bbb" }}>Laden...</div>
+        <div style={{ fontSize: 13, color: T.mutedLt }}>Laden...</div>
       ) : (
         <>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Beheerder</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: T.mutedLt, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Beheerder</div>
           {beheerders.length === 0 ? (
-            <div style={{ fontSize: 13, color: "#bbb", marginBottom: 10 }}>Nog geen beheerder gekoppeld</div>
+            <div style={{ fontSize: 13, color: T.mutedLt, marginBottom: 10 }}>Nog geen beheerder gekoppeld</div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
               {beheerders.map(b => (
-                <div key={b.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
+                <div key={b.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
                   <span style={{ background: "#6C3FC5", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>beheerder</span>
                   <span style={{ fontWeight: 600 }}>{b.naam}</span>
-                  <span style={{ color: "#aaa", fontSize: 12 }}>{b.email}</span>
+                  <span style={{ color: T.mutedLt, fontSize: 12 }}>{b.email}</span>
                 </div>
               ))}
             </div>
@@ -290,19 +371,19 @@ function SuperCirkelKaart({ cirkel, onKoppel, onVerwijder, showToast, sb }) {
 
           {alleAcc.length > 0 && (
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <select value={selectId} onChange={e => setSelectId(e.target.value)} style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1.5px solid #ddd", fontSize: 13, background: "#fafafa", minWidth: 0 }}>
+              <select value={selectId} onChange={e => setSelectId(e.target.value)} style={{ flex: 1, padding: "8px 10px", borderRadius: T.r, border: `1.5px solid ${T.border}`, fontSize: 13, background: T.bg, minWidth: 0, color: T.dark }}>
                 <option value="">— Kies beheerder —</option>
                 {alleAcc.map(a => (
                   <option key={a.id} value={a.id}>{a.naam} ({a.email})</option>
                 ))}
               </select>
-              <button type="button" onClick={koppel} disabled={!selectId} style={{ background: "#6C3FC5", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: selectId ? "pointer" : "not-allowed", opacity: selectId ? 1 : 0.5, whiteSpace: "nowrap" }}>
+              <button type="button" onClick={koppel} disabled={!selectId} style={{ background: "#6C3FC5", color: "#fff", border: "none", padding: "8px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: selectId ? "pointer" : "not-allowed", opacity: selectId ? 1 : 0.4, whiteSpace: "nowrap" }}>
                 Koppelen
               </button>
             </div>
           )}
           {alleAcc.length === 0 && beheerders.length > 0 && (
-            <div style={{ fontSize: 12, color: "#bbb" }}>Alle beheerders in deze cirkel zijn al gekoppeld</div>
+            <div style={{ fontSize: 12, color: T.mutedLt }}>Alle beheerders zijn al gekoppeld</div>
           )}
         </>
       )}
@@ -788,58 +869,50 @@ function App() {
 
   // ═══════════════════════════════════════════════════════════════
   return (
-    <div style={{ minHeight: "100vh", background: "#F5F2EE", fontFamily: "Georgia, serif", color: "#1a1a2e" }}>
+    <div style={{ minHeight: "100vh", background: T.bg, color: T.dark }}>
       {toast && <Toast msg={toast.msg} type={toast.type} />}
 
       {/* ── HEADER ── */}
-      <div style={{ background: "#1a1a2e", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", position: "sticky", top: 0, zIndex: 100 }}>
-        <button type="button" onClick={() => gebruiker && scherm !== "wachten" && setScherm(isSuperBeheerder ? "superBeheer" : "cirkel")} style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", fontSize: 20, fontWeight: 900 }}>
-          Buurt<span style={{ color: "#E8503A" }}>Cirkel</span>
-          <span style={{ fontSize: 10, fontWeight: 400, color: "rgba(255,255,255,0.4)", marginLeft: 6, letterSpacing: 0.5 }}>v{APP_VERSIE}</span>
+      <div style={{ background: T.surface, borderBottom: `1px solid ${T.border}`, height: 58, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 1px 0 rgba(0,0,0,0.04)" }}>
+        <button type="button" onClick={() => gebruiker && scherm !== "wachten" && setScherm(isSuperBeheerder ? "superBeheer" : "cirkel")} style={{ background: "none", border: "none", cursor: "pointer", color: T.dark, fontSize: 19, fontWeight: 800, letterSpacing: "-0.5px" }}>
+          Buurt<span style={{ color: T.accent }}>Cirkel</span>
+          <span style={{ fontSize: 10, fontWeight: 500, color: T.mutedLt, marginLeft: 6 }}>v{APP_VERSIE}</span>
         </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {gebruiker && scherm !== "wachten" && (
             <>
-              {/* Super beheerder navigatie */}
               {isSuperBeheerder ? (
                 <>
-                  <button type="button" onClick={() => setScherm("superBeheer")} style={{ background: scherm === "superBeheer" || scherm === "superGoedkeuren" ? "#E8503A" : "rgba(255,255,255,0.12)", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", position: "relative" }}>
-                    Super beheer
-                    {superWachtenden.length > 0 && <span style={{ position: "absolute", top: -6, right: -6, background: "#F5A623", color: "#fff", fontSize: 10, fontWeight: 700, width: 17, height: 17, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #1a1a2e" }}>{superWachtenden.length}</span>}
+                  <button type="button" onClick={() => setScherm("superBeheer")} style={{ background: scherm === "superBeheer" || scherm === "superGoedkeuren" || scherm === "superGebruikers" ? T.accent : T.bg, color: scherm === "superBeheer" || scherm === "superGoedkeuren" || scherm === "superGebruikers" ? "#fff" : T.muted, border: `1px solid ${T.border}`, padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", position: "relative" }}>
+                    Beheer
+                    {superWachtenden.length > 0 && <span style={{ position: "absolute", top: -5, right: -5, background: T.warning, color: "#fff", fontSize: 10, fontWeight: 800, width: 16, height: 16, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${T.surface}` }}>{superWachtenden.length}</span>}
                   </button>
-                  <button type="button" onClick={() => setScherm("nieuweCirkel")} style={{ background: scherm === "nieuweCirkel" ? "#E8503A" : "rgba(255,255,255,0.12)", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                  <button type="button" onClick={() => setScherm("nieuweCirkel")} style={{ background: scherm === "nieuweCirkel" ? T.accent : T.bg, color: scherm === "nieuweCirkel" ? "#fff" : T.muted, border: `1px solid ${T.border}`, padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                     + Cirkel
                   </button>
                 </>
               ) : (
                 <>
-                  {/* Mijn verzoeken */}
-                  <button type="button" onClick={() => setScherm("mijnVerzoeken")} style={{ background: scherm === "mijnVerzoeken" ? "#E8503A" : "rgba(255,255,255,0.12)", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                    Mijn verzoeken
+                  <button type="button" onClick={() => setScherm("mijnVerzoeken")} style={{ background: scherm === "mijnVerzoeken" ? T.accent : T.bg, color: scherm === "mijnVerzoeken" ? "#fff" : T.muted, border: `1px solid ${T.border}`, padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                    Verzoeken
                   </button>
-
-                  {/* Beheer (alleen reguliere beheerder) */}
                   {isBeheerder && (
-                    <button type="button" onClick={() => setScherm(scherm === "beheer" ? "cirkel" : "beheer")} style={{ background: scherm === "beheer" ? "#E8503A" : "rgba(255,255,255,0.12)", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", position: "relative" }}>
+                    <button type="button" onClick={() => setScherm(scherm === "beheer" ? "cirkel" : "beheer")} style={{ background: scherm === "beheer" ? T.accent : T.bg, color: scherm === "beheer" ? "#fff" : T.muted, border: `1px solid ${T.border}`, padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", position: "relative" }}>
                       Beheer
-                      {badgeCount > 0 && <span style={{ position: "absolute", top: -6, right: -6, background: "#E8503A", color: "#fff", fontSize: 10, fontWeight: 700, width: 17, height: 17, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #1a1a2e" }}>{badgeCount}</span>}
+                      {badgeCount > 0 && <span style={{ position: "absolute", top: -5, right: -5, background: T.accent, color: "#fff", fontSize: 10, fontWeight: 800, width: 16, height: 16, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${T.surface}` }}>{badgeCount}</span>}
                     </button>
                   )}
                 </>
               )}
-
-              <span style={{ color: "#fff", fontSize: 13, fontWeight: 600, opacity: 0.85, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {gebruiker.naam.split(" ")[0]}
-              </span>
-              <button type="button" onClick={() => { setWijzigModal(true); setWijzigFout(""); }} style={{ background: "none", color: "#aaa", border: "1px solid #444", padding: "5px 10px", borderRadius: 20, fontSize: 11, cursor: "pointer" }}>🔑</button>
-              <button type="button" onClick={uitloggen} style={{ background: "none", color: "#aaa", border: "1px solid #444", padding: "5px 10px", borderRadius: 20, fontSize: 11, cursor: "pointer" }}>Uit</button>
-              <Avatar tekst={ini(gebruiker.naam)} size={30} kleur={isSuperBeheerder ? "#6C3FC5" : (cirkel?.kleur || "#E8503A")} />
+              <button type="button" onClick={() => { setWijzigModal(true); setWijzigFout(""); }} style={{ background: T.bg, color: T.muted, border: `1px solid ${T.border}`, padding: "6px 10px", borderRadius: 20, fontSize: 13, cursor: "pointer" }} title="Wachtwoord wijzigen">🔑</button>
+              <button type="button" onClick={uitloggen} style={{ background: T.bg, color: T.muted, border: `1px solid ${T.border}`, padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Uit</button>
+              <Avatar tekst={ini(gebruiker.naam)} size={32} kleur={isSuperBeheerder ? "#6C3FC5" : (cirkel?.kleur || T.accent)} />
             </>
           )}
         </div>
       </div>
 
-      <div style={{ maxWidth: 640, margin: "0 auto", padding: "24px 16px" }}>
+      <div style={{ maxWidth: 600, margin: "0 auto", padding: "28px 16px" }}>
 
         {fout && scherm !== "login" && scherm !== "aanmelden" && (
           <div style={{ marginBottom: 16 }}>
@@ -849,34 +922,29 @@ function App() {
 
         {/* ══ LOGIN ══ */}
         {scherm === "login" && (
-          <div>
-            <div style={{ textAlign: "center", marginBottom: 32 }}>
-              <div style={{ fontSize: 48, marginBottom: 8 }}>🏘️</div>
-              <h1 style={{ fontSize: 30, fontWeight: 900, marginBottom: 6 }}>BuurtCirkel</h1>
-              <p style={{ color: "#888", fontSize: 15 }}>Gratis diensten uitwisselen met je buren</p>
+          <div className="bc-fade">
+            <div style={{ textAlign: "center", marginBottom: 36, paddingTop: 16 }}>
+              <div style={{ width: 64, height: 64, background: T.accent, borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 30, boxShadow: `0 8px 24px ${T.accent}40` }}>🏘️</div>
+              <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 6, letterSpacing: "-0.5px" }}>BuurtCirkel</h1>
+              <p style={{ color: T.muted, fontSize: 14 }}>Diensten uitwisselen met je buren</p>
             </div>
-            <div style={{ ...card, maxWidth: 400, margin: "0 auto" }}>
-              <h2 style={{ fontWeight: 700, fontSize: 20, marginBottom: 20 }}>Inloggen</h2>
-              {loginFout && <div style={{ background: "#fff0f0", color: "#c0392b", padding: "10px 14px", borderRadius: 8, fontSize: 13, marginBottom: 14, border: "1px solid #fcc" }}>{loginFout}</div>}
-              {fout && <div style={{ background: "#fff0f0", color: "#c0392b", padding: "10px 14px", borderRadius: 8, fontSize: 13, marginBottom: 14, border: "1px solid #fcc" }}>{fout}</div>}
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>E-mailadres</label>
-              <input value={loginForm.email} onChange={e => setLoginForm(p => ({ ...p, email: e.target.value }))} placeholder="jouw@email.nl" style={{ ...inp, marginBottom: 12 }} />
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>Wachtwoord</label>
-              <input type="password" value={loginForm.wachtwoord} onChange={e => setLoginForm(p => ({ ...p, wachtwoord: e.target.value }))} onKeyDown={e => e.key === "Enter" && inloggen()} placeholder="••••••••" style={{ ...inp, marginBottom: 16 }} />
-              <HCaptcha
-                id="login-captcha"
-                onVerify={token => setLoginCaptcha(token)}
-                onExpire={() => setLoginCaptcha(null)}
-              />
-              <button type="button" onClick={inloggen} disabled={bezig} style={{ background: "#E8503A", color: "#fff", border: "none", padding: "12px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: bezig ? "not-allowed" : "pointer", width: "100%", marginBottom: 12, opacity: bezig ? 0.7 : 1 }}>
+            <div style={{ ...card, maxWidth: 420, margin: "0 auto" }}>
+              <h2 style={{ fontWeight: 700, fontSize: 18, marginBottom: 20, color: T.dark }}>Inloggen</h2>
+              {loginFout && <div style={foutBox}>{loginFout}</div>}
+              {fout && <div style={foutBox}>{fout}</div>}
+              <label style={label}>E-mailadres</label>
+              <input value={loginForm.email} onChange={e => setLoginForm(p => ({ ...p, email: e.target.value }))} placeholder="jouw@email.nl" style={{ ...inp, marginBottom: 14 }} />
+              <label style={label}>Wachtwoord</label>
+              <input type="password" value={loginForm.wachtwoord} onChange={e => setLoginForm(p => ({ ...p, wachtwoord: e.target.value }))} onKeyDown={e => e.key === "Enter" && inloggen()} placeholder="••••••••" style={{ ...inp, marginBottom: 18 }} />
+              <HCaptcha id="login-captcha" onVerify={token => setLoginCaptcha(token)} onExpire={() => setLoginCaptcha(null)} />
+              <button type="button" onClick={inloggen} disabled={bezig} style={{ ...btnPrimary, marginBottom: 10, opacity: bezig ? 0.7 : 1, cursor: bezig ? "not-allowed" : "pointer" }}>
                 {bezig ? "Bezig..." : "Inloggen"}
               </button>
-              <button type="button" onClick={() => { setScherm("aanmelden"); setAanmeldFout(""); }} style={{ background: "#f5f5f5", color: "#444", border: "none", padding: "12px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", width: "100%" }}>
+              <button type="button" onClick={() => { setScherm("aanmelden"); setAanmeldFout(""); }} style={btnSecondary}>
                 Nog geen account? Aanmelden
               </button>
-              <div style={{ marginTop: 16, padding: "12px 14px", background: "#f9f9f9", borderRadius: 10, fontSize: 12, color: "#999", lineHeight: 1.7 }}>
-                <strong>Let op:</strong> gebruik je geregistreerde e-mail en wachtwoord.<br />
-                Accounts worden aangemaakt via het aanmeldformulier.
+              <div style={{ marginTop: 16, padding: "12px 14px", background: T.bg, borderRadius: T.r, fontSize: 12, color: T.mutedLt, lineHeight: 1.7, border: `1px solid ${T.border}` }}>
+                Gebruik je geregistreerde e-mail en wachtwoord. Accounts worden aangemaakt via het aanmeldformulier.
               </div>
             </div>
           </div>
@@ -884,12 +952,12 @@ function App() {
 
         {/* ══ AANMELDEN ══ */}
         {scherm === "aanmelden" && (
-          <div>
-            <button type="button" onClick={() => setScherm("login")} style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 14, marginBottom: 18 }}>&#8592; Terug</button>
+          <div className="bc-fade">
+            <button type="button" onClick={() => setScherm("login")} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 14, fontWeight: 600, marginBottom: 20, display: "flex", alignItems: "center", gap: 4 }}>← Terug</button>
             <div style={card}>
-              <h2 style={{ fontWeight: 700, fontSize: 20, marginBottom: 6 }}>Aanmelden</h2>
-              <p style={{ color: "#999", fontSize: 13, marginBottom: 20 }}>Na aanmelding beoordeelt de beheerder je verzoek.</p>
-              {aanmeldFout && <div style={{ background: "#fff0f0", color: "#c0392b", padding: "10px 14px", borderRadius: 8, fontSize: 13, marginBottom: 14, border: "1px solid #fcc" }}>{aanmeldFout}</div>}
+              <h2 style={{ fontWeight: 700, fontSize: 18, marginBottom: 4 }}>Aanmelden</h2>
+              <p style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>Na aanmelding beoordeelt de beheerder je verzoek.</p>
+              {aanmeldFout && <div style={foutBox}>{aanmeldFout}</div>}
               {[
                 { label: "Volledige naam", key: "naam", ph: "Voor- en achternaam", type: "text" },
                 { label: "E-mailadres", key: "email", ph: "jouw@email.nl", type: "text" },
@@ -898,21 +966,15 @@ function App() {
                 { label: "Herhaal wachtwoord", key: "herhaal", ph: "Nogmaals je wachtwoord", type: "password" },
               ].map(f => (
                 <div key={f.key}>
-                  <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>{f.label}</label>
-                  <input type={f.type} value={aanmeldForm[f.key]} onChange={e => setAanmeldForm(p => ({ ...p, [f.key]: e.target.value }))} placeholder={f.ph} style={{ ...inp, marginBottom: 12 }} />
+                  <label style={label}>{f.label}</label>
+                  <input type={f.type} value={aanmeldForm[f.key]} onChange={e => setAanmeldForm(p => ({ ...p, [f.key]: e.target.value }))} placeholder={f.ph} style={{ ...inp, marginBottom: 14 }} />
                 </div>
               ))}
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>Buurtcirkel code</label>
-              <input value={aanmeldForm.cirkelId} onChange={e => setAanmeldForm(p => ({ ...p, cirkelId: e.target.value.toUpperCase() }))} placeholder="bijv. BC-1042" style={{ ...inp, marginBottom: 6 }} />
-              <div style={{ fontSize: 12, color: "#aaa", marginBottom: 20 }}>
-                Je ontvangt deze code van de beheerder van je buurtcirkel.
-              </div>
-              <HCaptcha
-                id="aanmeld-captcha"
-                onVerify={token => setAanmeldCaptcha(token)}
-                onExpire={() => setAanmeldCaptcha(null)}
-              />
-              <button type="button" onClick={aanmelden} disabled={bezig} style={{ background: "#E8503A", color: "#fff", border: "none", padding: "12px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: bezig ? "not-allowed" : "pointer", width: "100%", opacity: bezig ? 0.7 : 1 }}>
+              <label style={label}>Buurtcirkel code</label>
+              <input value={aanmeldForm.cirkelId} onChange={e => setAanmeldForm(p => ({ ...p, cirkelId: e.target.value.toUpperCase() }))} placeholder="bijv. BC-1042" style={{ ...inp, marginBottom: 6, fontFamily: "monospace" }} />
+              <div style={{ fontSize: 12, color: T.mutedLt, marginBottom: 20 }}>Je ontvangt deze code van de beheerder van je buurtcirkel.</div>
+              <HCaptcha id="aanmeld-captcha" onVerify={token => setAanmeldCaptcha(token)} onExpire={() => setAanmeldCaptcha(null)} />
+              <button type="button" onClick={aanmelden} disabled={bezig} style={{ ...btnPrimary, opacity: bezig ? 0.7 : 1, cursor: bezig ? "not-allowed" : "pointer" }}>
                 {bezig ? "Bezig..." : "Aanmelding versturen"}
               </button>
             </div>
@@ -921,80 +983,77 @@ function App() {
 
         {/* ══ WACHTEN ══ */}
         {scherm === "wachten" && (
-          <div style={{ textAlign: "center", padding: "40px 20px" }}>
-            <div style={{ fontSize: 56, marginBottom: 16 }}>⏳</div>
-            <h2 style={{ fontWeight: 900, fontSize: 24, marginBottom: 10 }}>Je aanmelding wordt beoordeeld</h2>
-            <p style={{ color: "#888", fontSize: 15, lineHeight: 1.7, marginBottom: 28 }}>
+          <div style={{ textAlign: "center", padding: "60px 20px" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
+            <h2 style={{ fontWeight: 800, fontSize: 22, marginBottom: 10, letterSpacing: "-0.5px" }}>Aanmelding wordt beoordeeld</h2>
+            <p style={{ color: T.muted, fontSize: 14, lineHeight: 1.7, marginBottom: 28, maxWidth: 320, margin: "0 auto 28px" }}>
               De beheerder van <strong>{cirkels.find(c => c.id === gebruiker?.cirkel_id)?.naam || "je buurtcirkel"}</strong> beoordeelt je verzoek.
             </p>
-            <button type="button" onClick={uitloggen} style={{ background: "#eee", color: "#555", border: "none", padding: "11px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Uitloggen</button>
+            <button type="button" onClick={uitloggen} style={{ ...btnSecondary, width: "auto", padding: "10px 24px" }}>Uitloggen</button>
           </div>
         )}
 
         {/* ══ CIRKEL ══ */}
         {scherm === "cirkel" && cirkel && (
-          <div>
-            {/* Cirkel header met schakelaar voor beheerder */}
-            <div style={{ background: cirkel.kleur, borderRadius: 18, padding: "20px 22px 18px", marginBottom: 18, color: "#fff" }}>
-              <div style={{ fontSize: 11, fontWeight: 600, opacity: 0.8, marginBottom: 3, letterSpacing: 1 }}>{cirkelId}</div>
-              <div style={{ fontWeight: 900, fontSize: 26, marginBottom: 4 }}>{cirkel.naam}</div>
-              <div style={{ opacity: 0.85, fontSize: 13, marginBottom: 14 }}>{cirkel.stad} · {diensten.length} diensten · {actieven.length} leden</div>
-
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button type="button" onClick={() => setScherm("nieuweDienst")} style={{ background: "rgba(255,255,255,0.25)", color: "#fff", border: "2px solid rgba(255,255,255,0.5)", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                  + Dienst aanbieden
-                </button>
-              </div>
+          <div className="bc-fade">
+            {/* Cirkel header */}
+            <div style={{ background: cirkel.kleur, borderRadius: T.rXl, padding: "22px", marginBottom: 16, color: "#fff", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", right: -20, top: -20, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
+              <div style={{ position: "absolute", right: 20, bottom: -30, width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
+              <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.7, marginBottom: 4, letterSpacing: "0.08em", textTransform: "uppercase" }}>{cirkelId}</div>
+              <div style={{ fontWeight: 800, fontSize: 24, marginBottom: 4, letterSpacing: "-0.5px" }}>{cirkel.naam}</div>
+              <div style={{ opacity: 0.8, fontSize: 13, marginBottom: 16 }}>{cirkel.stad} · {diensten.length} diensten · {actieven.length} leden</div>
+              <button type="button" onClick={() => setScherm("nieuweDienst")} style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.4)", padding: "8px 18px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer", backdropFilter: "blur(4px)" }}>
+                + Dienst aanbieden
+              </button>
             </div>
 
-            <input value={zoek} onChange={e => setZoek(e.target.value)} placeholder="Zoek diensten..." style={{ ...inp, marginBottom: 12 }} />
+            <input value={zoek} onChange={e => setZoek(e.target.value)} placeholder="🔍  Zoek diensten..." style={{ ...inp, marginBottom: 12 }} />
 
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
               {["Alle", ...CATS].map(cat => (
-                <button type="button" key={cat} onClick={() => setFilter(cat)} style={{ padding: "5px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", background: filter === cat ? cirkel.kleur : "#fff", color: filter === cat ? "#fff" : "#666", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+                <button type="button" key={cat} onClick={() => setFilter(cat)} style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, border: `1.5px solid ${filter === cat ? cirkel.kleur : T.border}`, cursor: "pointer", background: filter === cat ? cirkel.kleur : T.surface, color: filter === cat ? "#fff" : T.muted, transition: "all 0.15s" }}>
                   {cat}
                 </button>
               ))}
             </div>
 
             {laden ? <Spinner /> : gefilterд.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "40px 0", color: "#bbb" }}>
-                <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
-                <div>Geen diensten gevonden</div>
+              <div style={{ textAlign: "center", padding: "48px 0", color: T.mutedLt }}>
+                <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
+                <div style={{ fontWeight: 600 }}>Geen diensten gevonden</div>
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {gefilterд.map(d => {
                   const cat = CAT_STIJL[d.categorie] || CAT_STIJL.Overig;
                   const isEigen = d.lid_id === gebruiker?.id;
                   const alVerzocht = mijnVerzoeken.some(v => v.dienst_id === d.id);
                   return (
-                    <div key={d.id} style={card}>
+                    <div key={d.id} style={{ ...card, transition: "box-shadow 0.15s" }}>
                       <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 10 }}>
-                        <Avatar tekst={d.avatar} size={42} kleur={cirkel.kleur} />
+                        <Avatar tekst={d.avatar} size={40} kleur={cirkel.kleur} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 2 }}>{d.titel}</div>
-                          <div style={{ fontSize: 13, color: "#999" }}>{d.lid_naam}</div>
+                          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2, letterSpacing: "-0.2px" }}>{d.titel}</div>
+                          <div style={{ fontSize: 13, color: T.muted }}>{d.lid_naam}</div>
                         </div>
-                        <span style={{ background: cat.bg, color: cat.text, fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>{d.categorie}</span>
+                        <span style={badge(cat.bg, cat.text)}>{d.categorie}</span>
                       </div>
-                      <p style={{ fontSize: 14, color: "#555", lineHeight: 1.6, margin: "0 0 12px" }}>{d.beschrijving}</p>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontSize: 12, color: "#bbb" }}>{new Date(d.datum).toLocaleDateString("nl-NL", { day: "numeric", month: "long" })}</span>
+                      <p style={{ fontSize: 13, color: T.muted, lineHeight: 1.6, margin: "0 0 12px" }}>{d.beschrijving}</p>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
+                        <span style={{ fontSize: 12, color: T.mutedLt }}>{new Date(d.datum).toLocaleDateString("nl-NL", { day: "numeric", month: "long" })}</span>
                         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                          {d.status === "wacht" && (
-                            <span style={{ background: "#FFF3CD", color: "#856404", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>Wacht op goedkeuring</span>
-                          )}
+                          {d.status === "wacht" && <span style={badge(CAT_STIJL.Overig.bg, T.muted)}>⏳ Wacht</span>}
                           {(isEigen || isBeheerder) && (
-                            <button type="button" onClick={() => dienstVerwijderen(d.id)} style={{ background: "#fee", color: "#c0392b", border: "1px solid #fcc", padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                            <button type="button" onClick={() => dienstVerwijderen(d.id)} style={{ background: "#FEF2F2", color: T.danger, border: `1px solid #FECACA`, padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                               Verwijder
                             </button>
                           )}
                           {!isEigen && d.status === "actief" && (
                             alVerzocht ? (
-                              <span style={{ background: "#f0f0f0", color: "#aaa", padding: "7px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>Verzocht ✓</span>
+                              <span style={badge(T.bg, T.mutedLt)}>Verzocht ✓</span>
                             ) : (
-                              <button type="button" onClick={() => { setVerzoekModal(d); setVerzoekBericht(""); }} style={{ background: cirkel.kleur, color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                              <button type="button" onClick={() => { setVerzoekModal(d); setVerzoekBericht(""); }} style={{ background: cirkel.kleur, color: "#fff", border: "none", padding: "6px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                                 Aanvragen
                               </button>
                             )
@@ -1011,34 +1070,35 @@ function App() {
 
         {/* ══ MIJN VERZOEKEN ══ */}
         {scherm === "mijnVerzoeken" && (
-          <div>
-            <button type="button" onClick={() => setScherm("cirkel")} style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 14, marginBottom: 18 }}>&#8592; Terug</button>
-            <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 6 }}>Mijn verzoeken</h2>
+          <div className="bc-fade">
+            <button type="button" onClick={() => setScherm("cirkel")} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 14, fontWeight: 600, marginBottom: 20, display: "flex", alignItems: "center", gap: 4 }}>← Terug</button>
+            <h2 style={{ fontWeight: 800, fontSize: 20, marginBottom: 20, letterSpacing: "-0.5px" }}>Mijn verzoeken</h2>
 
             {/* Inkomende verzoeken (voor mijn diensten) */}
             {verzoeken.length > 0 && (
-              <div style={{ marginBottom: 28 }}>
-                <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-                  Inkomend — voor mijn diensten
-                  {openVerzoeken.length > 0 && <span style={{ background: "#E8503A", color: "#fff", fontSize: 12, padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>{openVerzoeken.length}</span>}
+              <div style={{ marginBottom: 24 }}>
+                <h3 style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, display: "flex", alignItems: "center", gap: 8, textTransform: "uppercase", letterSpacing: "0.05em", color: T.muted }}>
+                  Inkomend
+                  {openVerzoeken.length > 0 && <span style={badge(T.accent, "#fff")}>{openVerzoeken.length}</span>}
                 </h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {verzoeken.map(v => {
                     const stijl = VERZOEK_STIJL[v.status] || VERZOEK_STIJL.wacht;
+                    const accentKleur = v.status === "wacht" ? T.warning : v.status === "geaccepteerd" ? T.success : T.danger;
                     return (
-                      <div key={v.id} style={{ ...card, borderLeft: "4px solid " + (v.status === "wacht" ? "#F5A623" : v.status === "geaccepteerd" ? "#27ae60" : "#e74c3c") }}>
+                      <div key={v.id} style={{ ...card, borderLeft: `3px solid ${accentKleur}` }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
                           <div>
-                            <div style={{ fontWeight: 700, fontSize: 15 }}>{v.aanvrager_naam}</div>
-                            <div style={{ fontSize: 13, color: "#999" }}>vraagt om: <em>{v.dienst_titel}</em></div>
+                            <div style={{ fontWeight: 700, fontSize: 14 }}>{v.aanvrager_naam}</div>
+                            <div style={{ fontSize: 13, color: T.muted }}>vraagt om: <em>{v.dienst_titel}</em></div>
                           </div>
-                          <span style={{ background: stijl.bg, color: stijl.text, fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20 }}>{stijl.label}</span>
+                          <span style={badge(stijl.bg, stijl.text)}>{stijl.label}</span>
                         </div>
-                        {v.bericht && <p style={{ fontSize: 14, color: "#555", margin: "0 0 10px", lineHeight: 1.5 }}>"{v.bericht}"</p>}
+                        {v.bericht && <p style={{ fontSize: 13, color: T.muted, margin: "0 0 10px", lineHeight: 1.5, fontStyle: "italic" }}>"{v.bericht}"</p>}
                         {v.status === "wacht" && (
                           <div style={{ display: "flex", gap: 8 }}>
-                            <button type="button" onClick={() => verzoekBeantwoorden(v.id, "geaccepteerd")} style={{ background: "#27ae60", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Accepteren</button>
-                            <button type="button" onClick={() => verzoekBeantwoorden(v.id, "afgewezen")} style={{ background: "#e74c3c", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Afwijzen</button>
+                            <button type="button" onClick={() => verzoekBeantwoorden(v.id, "geaccepteerd")} style={{ background: T.success, color: "#fff", border: "none", padding: "6px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Accepteren</button>
+                            <button type="button" onClick={() => verzoekBeantwoorden(v.id, "afgewezen")} style={{ background: T.danger, color: "#fff", border: "none", padding: "6px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Afwijzen</button>
                           </div>
                         )}
                       </div>
@@ -1050,23 +1110,23 @@ function App() {
 
             {/* Verstuurde verzoeken */}
             <div>
-              <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 12 }}>Verstuurd — mijn aanvragen</h3>
+              <h3 style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em", color: T.muted }}>Verstuurd</h3>
               {mijnVerzoeken.length === 0 ? (
-                <div style={{ ...card, color: "#bbb", textAlign: "center", padding: 24 }}>Je hebt nog geen diensten aangevraagd</div>
+                <div style={{ ...card, color: T.mutedLt, textAlign: "center", padding: 24 }}>Je hebt nog geen diensten aangevraagd</div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {mijnVerzoeken.map(v => {
                     const stijl = VERZOEK_STIJL[v.status] || VERZOEK_STIJL.wacht;
                     return (
-                      <div key={v.id} style={{ ...card }}>
+                      <div key={v.id} style={card}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
                           <div>
-                            <div style={{ fontWeight: 700, fontSize: 15 }}>{v.dienst_titel}</div>
-                            <div style={{ fontSize: 12, color: "#bbb" }}>{new Date(v.datum).toLocaleDateString("nl-NL", { day: "numeric", month: "long" })}</div>
+                            <div style={{ fontWeight: 700, fontSize: 14 }}>{v.dienst_titel}</div>
+                            <div style={{ fontSize: 12, color: T.mutedLt }}>{new Date(v.datum).toLocaleDateString("nl-NL", { day: "numeric", month: "long" })}</div>
                           </div>
-                          <span style={{ background: stijl.bg, color: stijl.text, fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20 }}>{stijl.label}</span>
+                          <span style={badge(stijl.bg, stijl.text)}>{stijl.label}</span>
                         </div>
-                        {v.bericht && <p style={{ fontSize: 13, color: "#888", margin: "8px 0 0", lineHeight: 1.5 }}>"{v.bericht}"</p>}
+                        {v.bericht && <p style={{ fontSize: 13, color: T.muted, margin: "8px 0 0", lineHeight: 1.5, fontStyle: "italic" }}>"{v.bericht}"</p>}
                       </div>
                     );
                   })}
@@ -1078,29 +1138,29 @@ function App() {
 
         {/* ══ BEHEER ══ */}
         {scherm === "beheer" && isBeheerder && (
-          <div>
-            <button type="button" onClick={() => setScherm("cirkel")} style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 14, marginBottom: 18 }}>&#8592; Terug</button>
-            <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 20 }}>Beheer — {cirkel?.naam}</h2>
+          <div className="bc-fade">
+            <button type="button" onClick={() => setScherm("cirkel")} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 14, fontWeight: 600, marginBottom: 20, display: "flex", alignItems: "center", gap: 4 }}>← Terug</button>
+            <h2 style={{ fontWeight: 800, fontSize: 20, marginBottom: 20, letterSpacing: "-0.5px" }}>Beheer — {cirkel?.naam}</h2>
 
             {wachtenden.length > 0 && (
-              <div style={{ marginBottom: 28 }}>
-                <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ marginBottom: 24 }}>
+                <h3 style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, display: "flex", alignItems: "center", gap: 8, textTransform: "uppercase", letterSpacing: "0.05em", color: T.muted }}>
                   Wachten op goedkeuring
-                  <span style={{ background: "#E8503A", color: "#fff", fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>{wachtenden.length}</span>
+                  <span style={badge(T.accent, "#fff")}>{wachtenden.length}</span>
                 </h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {wachtenden.map(lid => (
-                    <div key={lid.id} style={{ ...card, borderLeft: "4px solid #F5A623" }}>
+                    <div key={lid.id} style={{ ...card, borderLeft: `3px solid ${T.warning}` }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                        <Avatar tekst={ini(lid.naam)} size={40} kleur="#F5A623" />
+                        <Avatar tekst={ini(lid.naam)} size={40} kleur={T.warning} />
                         <div style={{ flex: 1, minWidth: 120 }}>
-                          <div style={{ fontWeight: 700, fontSize: 15 }}>{lid.naam}</div>
-                          <div style={{ fontSize: 13, color: "#999" }}>{lid.email}</div>
-                          {lid.telefoon && <div style={{ fontSize: 13, color: "#999" }}>📱 {lid.telefoon}</div>}
+                          <div style={{ fontWeight: 700, fontSize: 14 }}>{lid.naam}</div>
+                          <div style={{ fontSize: 13, color: T.muted }}>{lid.email}</div>
+                          {lid.telefoon && <div style={{ fontSize: 13, color: T.muted }}>📱 {lid.telefoon}</div>}
                         </div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <button type="button" onClick={() => lidGoedkeuren(lid.id)} style={{ background: "#27ae60", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Goedkeuren</button>
-                          <button type="button" onClick={() => lidAfwijzen(lid.id)} style={{ background: "#e74c3c", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Afwijzen</button>
+                          <button type="button" onClick={() => lidGoedkeuren(lid.id)} style={{ background: T.success, color: "#fff", border: "none", padding: "6px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Goedkeuren</button>
+                          <button type="button" onClick={() => lidAfwijzen(lid.id)} style={{ background: T.danger, color: "#fff", border: "none", padding: "6px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Afwijzen</button>
                         </div>
                       </div>
                     </div>
@@ -1110,28 +1170,28 @@ function App() {
             )}
 
             {wachtendeDiensten.length > 0 && (
-              <div style={{ marginBottom: 28 }}>
-                <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-                  Diensten — wachten op goedkeuring
-                  <span style={{ background: "#F5A623", color: "#fff", fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>{wachtendeDiensten.length}</span>
+              <div style={{ marginBottom: 24 }}>
+                <h3 style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, display: "flex", alignItems: "center", gap: 8, textTransform: "uppercase", letterSpacing: "0.05em", color: T.muted }}>
+                  Diensten — wacht op goedkeuring
+                  <span style={badge("#FEF9C3", T.warning)}>{wachtendeDiensten.length}</span>
                 </h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {wachtendeDiensten.map(d => {
                     const cat = CAT_STIJL[d.categorie] || CAT_STIJL.Overig;
                     return (
-                      <div key={d.id} style={{ ...card, borderLeft: "4px solid #F5A623" }}>
+                      <div key={d.id} style={{ ...card, borderLeft: `3px solid ${T.warning}` }}>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
-                          <Avatar tekst={d.avatar} size={38} kleur={cirkel?.kleur || "#888"} />
+                          <Avatar tekst={d.avatar} size={36} kleur={cirkel?.kleur || T.muted} />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 700, fontSize: 15 }}>{d.titel}</div>
-                            <div style={{ fontSize: 13, color: "#999" }}>{d.lid_naam}</div>
-                            <span style={{ background: cat.bg, color: cat.text, fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, display: "inline-block", marginTop: 4 }}>{d.categorie}</span>
+                            <div style={{ fontWeight: 700, fontSize: 14 }}>{d.titel}</div>
+                            <div style={{ fontSize: 13, color: T.muted }}>{d.lid_naam}</div>
+                            <span style={{ ...badge(cat.bg, cat.text), display: "inline-block", marginTop: 4 }}>{d.categorie}</span>
                           </div>
                         </div>
-                        <p style={{ fontSize: 14, color: "#555", lineHeight: 1.6, margin: "0 0 12px" }}>{d.beschrijving}</p>
+                        <p style={{ fontSize: 13, color: T.muted, lineHeight: 1.6, margin: "0 0 12px" }}>{d.beschrijving}</p>
                         <div style={{ display: "flex", gap: 8 }}>
-                          <button type="button" onClick={() => dienstGoedkeuren(d.id)} style={{ background: "#27ae60", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Goedkeuren</button>
-                          <button type="button" onClick={() => dienstAfwijzen(d.id)} style={{ background: "#e74c3c", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Afwijzen</button>
+                          <button type="button" onClick={() => dienstGoedkeuren(d.id)} style={{ background: T.success, color: "#fff", border: "none", padding: "6px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Goedkeuren</button>
+                          <button type="button" onClick={() => dienstAfwijzen(d.id)} style={{ background: T.danger, color: "#fff", border: "none", padding: "6px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Afwijzen</button>
                         </div>
                       </div>
                     );
@@ -1141,21 +1201,21 @@ function App() {
             )}
 
             <div>
-              <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 12 }}>Actieve leden ({actieven.length})</h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <h3 style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em", color: T.muted }}>Actieve leden ({actieven.length})</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {actieven.map(lid => (
                   <div key={lid.id} style={{ ...card, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                    <Avatar tekst={ini(lid.naam)} size={40} kleur={cirkel?.kleur || "#888"} />
+                    <Avatar tekst={ini(lid.naam)} size={38} kleur={cirkel?.kleur || T.muted} />
                     <div style={{ flex: 1, minWidth: 120 }}>
-                      <div style={{ fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         {lid.naam}
-                        {lid.rol === "beheerder" && <span style={{ background: "#1a1a2e", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>Beheerder</span>}
+                        {lid.rol === "beheerder" && <span style={badge(T.dark, "#fff")}>beheerder</span>}
                       </div>
-                      <div style={{ fontSize: 13, color: "#999" }}>{lid.email}</div>
-                      {lid.telefoon && <div style={{ fontSize: 13, color: "#999" }}>📱 {lid.telefoon}</div>}
+                      <div style={{ fontSize: 13, color: T.muted }}>{lid.email}</div>
+                      {lid.telefoon && <div style={{ fontSize: 13, color: T.muted }}>📱 {lid.telefoon}</div>}
                     </div>
                     {lid.id !== gebruiker.id && (
-                      <button type="button" onClick={() => lidVerwijderen(lid.id)} style={{ background: "#fee", color: "#c0392b", border: "1px solid #fcc", padding: "6px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                      <button type="button" onClick={() => lidVerwijderen(lid.id)} style={{ background: "#FEF2F2", color: T.danger, border: `1px solid #FECACA`, padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                         Verwijderen
                       </button>
                     )}
@@ -1168,36 +1228,29 @@ function App() {
 
         {/* ══ SUPER BEHEER ══ */}
         {scherm === "superBeheer" && isSuperBeheerder && (
-          <div>
+          <div className="bc-fade">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, flexWrap: "wrap", gap: 10 }}>
-              <h2 style={{ fontWeight: 900, fontSize: 22 }}>Super beheer</h2>
+              <h2 style={{ fontWeight: 800, fontSize: 20, letterSpacing: "-0.5px" }}>Super beheer</h2>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {superWachtenden.length > 0 && (
-                  <button type="button" onClick={() => setScherm("superGoedkeuren")} style={{ background: "#FFF3CD", color: "#856404", border: "1px solid #F5A623", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                  <button type="button" onClick={() => setScherm("superGoedkeuren")} style={{ background: "#FEF9C3", color: T.warning, border: `1px solid #FDE68A`, padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
                     ⏳ Aanmeldingen
-                    <span style={{ background: "#E8503A", color: "#fff", fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 20 }}>{superWachtenden.length}</span>
+                    <span style={badge(T.accent, "#fff")}>{superWachtenden.length}</span>
                   </button>
                 )}
-                <button type="button" onClick={() => { laadAlleGebruikers(); setScherm("superGebruikers"); }} style={{ background: "#f0f0f0", color: "#444", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                <button type="button" onClick={() => { laadAlleGebruikers(); setScherm("superGebruikers"); }} style={{ background: T.bg, color: T.dark, border: `1.5px solid ${T.border}`, padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                   👥 Gebruikers
                 </button>
               </div>
             </div>
-            <p style={{ color: "#999", fontSize: 13, marginBottom: 20 }}>Overzicht van alle buurtcirkels en beheerders. Koppel cirkels aan beheerders.</p>
+            <p style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>Overzicht van alle buurtcirkels en beheerders.</p>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {cirkels.map(c => (
-                <SuperCirkelKaart
-                  key={c.id}
-                  cirkel={c}
-                  onKoppel={cirkelKoppelenAanBeheerder}
-                  onVerwijder={cirkelVerwijderen}
-                  showToast={showToast}
-                  sb={sb}
-                />
+                <SuperCirkelKaart key={c.id} cirkel={c} onKoppel={cirkelKoppelenAanBeheerder} onVerwijder={cirkelVerwijderen} showToast={showToast} sb={sb} />
               ))}
               {cirkels.length === 0 && (
-                <div style={{ ...card, color: "#bbb", textAlign: "center", padding: 24 }}>Nog geen buurtcirkels aangemaakt</div>
+                <div style={{ ...card, color: T.mutedLt, textAlign: "center", padding: 24 }}>Nog geen buurtcirkels aangemaakt</div>
               )}
             </div>
           </div>
@@ -1205,31 +1258,31 @@ function App() {
 
         {/* ══ SUPER GOEDKEUREN ══ */}
         {scherm === "superGoedkeuren" && isSuperBeheerder && (
-          <div>
-            <button type="button" onClick={() => setScherm("superBeheer")} style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 14, marginBottom: 18 }}>&#8592; Terug</button>
-            <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 6 }}>Aanmeldingen goedkeuren</h2>
-            <p style={{ color: "#999", fontSize: 13, marginBottom: 20 }}>Alle wachtende aanmeldingen over alle buurtcirkels.</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div className="bc-fade">
+            <button type="button" onClick={() => setScherm("superBeheer")} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 14, fontWeight: 600, marginBottom: 20, display: "flex", alignItems: "center", gap: 4 }}>← Terug</button>
+            <h2 style={{ fontWeight: 800, fontSize: 20, marginBottom: 4, letterSpacing: "-0.5px" }}>Aanmeldingen goedkeuren</h2>
+            <p style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>Alle wachtende aanmeldingen over alle buurtcirkels.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {superWachtenden.length === 0 ? (
-                <div style={{ ...card, color: "#bbb", textAlign: "center", padding: 24 }}>Geen wachtende aanmeldingen</div>
+                <div style={{ ...card, color: T.mutedLt, textAlign: "center", padding: 24 }}>Geen wachtende aanmeldingen</div>
               ) : superWachtenden.map(lid => {
                 const cirkelNaam = cirkels.find(c => c.id === lid.cirkel_id);
                 return (
-                  <div key={lid.id} style={{ ...card, borderLeft: "4px solid #F5A623" }}>
+                  <div key={lid.id} style={{ ...card, borderLeft: `3px solid ${T.warning}` }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                      <Avatar tekst={ini(lid.naam)} size={40} kleur="#F5A623" />
+                      <Avatar tekst={ini(lid.naam)} size={40} kleur={T.warning} />
                       <div style={{ flex: 1, minWidth: 120 }}>
-                        <div style={{ fontWeight: 700, fontSize: 15 }}>{lid.naam}</div>
-                        <div style={{ fontSize: 13, color: "#999" }}>{lid.email}</div>
-                        {lid.telefoon && <div style={{ fontSize: 13, color: "#999" }}>📱 {lid.telefoon}</div>}
-                        <div style={{ fontSize: 12, marginTop: 3 }}>
-                          <span style={{ background: "#f0f0f0", color: "#555", padding: "2px 8px", borderRadius: 20, fontFamily: "monospace" }}>{lid.cirkel_id}</span>
-                          {cirkelNaam && <span style={{ color: "#aaa", fontSize: 12, marginLeft: 6 }}>{cirkelNaam.naam}</span>}
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{lid.naam}</div>
+                        <div style={{ fontSize: 13, color: T.muted }}>{lid.email}</div>
+                        {lid.telefoon && <div style={{ fontSize: 13, color: T.muted }}>📱 {lid.telefoon}</div>}
+                        <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+                          <span style={{ background: T.bg, color: T.muted, padding: "2px 8px", borderRadius: 20, fontFamily: "monospace", fontSize: 12, border: `1px solid ${T.border}` }}>{lid.cirkel_id}</span>
+                          {cirkelNaam && <span style={{ color: T.mutedLt, fontSize: 12 }}>{cirkelNaam.naam}</span>}
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <button type="button" onClick={() => lidGoedkeuren(lid.id)} style={{ background: "#27ae60", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Goedkeuren</button>
-                        <button type="button" onClick={() => lidAfwijzen(lid.id)} style={{ background: "#e74c3c", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Afwijzen</button>
+                        <button type="button" onClick={() => lidGoedkeuren(lid.id)} style={{ background: T.success, color: "#fff", border: "none", padding: "6px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Goedkeuren</button>
+                        <button type="button" onClick={() => lidAfwijzen(lid.id)} style={{ background: T.danger, color: "#fff", border: "none", padding: "6px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Afwijzen</button>
                       </div>
                     </div>
                   </div>
@@ -1241,16 +1294,16 @@ function App() {
 
         {/* ══ SUPER GEBRUIKERS ══ */}
         {scherm === "superGebruikers" && isSuperBeheerder && (
-          <div>
-            <button type="button" onClick={() => setScherm("superBeheer")} style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 14, marginBottom: 18 }}>&#8592; Terug</button>
-            <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 6 }}>Gebruikers beheren</h2>
-            <p style={{ color: "#999", fontSize: 13, marginBottom: 20 }}>Alle gebruikers over alle buurtcirkels. Je kunt gebruikers hier verwijderen.</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div className="bc-fade">
+            <button type="button" onClick={() => setScherm("superBeheer")} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 14, fontWeight: 600, marginBottom: 20, display: "flex", alignItems: "center", gap: 4 }}>← Terug</button>
+            <h2 style={{ fontWeight: 800, fontSize: 20, marginBottom: 4, letterSpacing: "-0.5px" }}>Gebruikers beheren</h2>
+            <p style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>Alle gebruikers over alle buurtcirkels.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {alleGebruikers.length === 0 ? (
-                <div style={{ ...card, color: "#bbb", textAlign: "center", padding: 24 }}>Geen gebruikers gevonden</div>
+                <div style={{ ...card, color: T.mutedLt, textAlign: "center", padding: 24 }}>Geen gebruikers gevonden</div>
               ) : alleGebruikers.map(g => {
                 const cirkelNaam = cirkels.find(c => c.id === g.cirkel_id);
-                const rolKleur = g.rol === "super_beheerder" ? "#6C3FC5" : g.rol === "beheerder" ? "#4A6FD9" : "#888";
+                const rolKleur = g.rol === "super_beheerder" ? "#6C3FC5" : g.rol === "beheerder" ? "#4A6FD9" : T.muted;
                 const statusKleur = g.status === "actief" ? { bg: "#D4EDDA", text: "#155724" } : g.status === "wacht" ? { bg: "#FFF3CD", text: "#856404" } : { bg: "#F8D7DA", text: "#721C24" };
                 return (
                   <div key={g.id} style={{ ...card, borderLeft: `4px solid ${rolKleur}` }}>
@@ -1292,19 +1345,19 @@ function App() {
 
         {/* ══ NIEUWE DIENST ══ */}
         {scherm === "nieuweDienst" && cirkel && (
-          <div>
-            <button type="button" onClick={() => setScherm("cirkel")} style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 14, marginBottom: 18 }}>&#8592; Terug</button>
+          <div className="bc-fade">
+            <button type="button" onClick={() => setScherm("cirkel")} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 14, fontWeight: 600, marginBottom: 20, display: "flex", alignItems: "center", gap: 4 }}>← Terug</button>
             <div style={card}>
-              <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 20 }}>Dienst aanbieden</h2>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>Wat bied je aan?</label>
+              <h2 style={{ fontWeight: 800, fontSize: 20, marginBottom: 20, letterSpacing: "-0.5px" }}>Dienst aanbieden</h2>
+              <label style={label}>Wat bied je aan?</label>
               <input value={dienstForm.titel} onChange={e => setDienstForm(p => ({ ...p, titel: e.target.value }))} placeholder="bijv. Gitaarlessen voor beginners" style={{ ...inp, marginBottom: 14 }} />
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>Categorie</label>
+              <label style={label}>Categorie</label>
               <select value={dienstForm.categorie} onChange={e => setDienstForm(p => ({ ...p, categorie: e.target.value }))} style={{ ...inp, marginBottom: 14 }}>
                 {CATS.map(c => <option key={c}>{c}</option>)}
               </select>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>Beschrijving</label>
+              <label style={label}>Beschrijving</label>
               <textarea value={dienstForm.beschrijving} onChange={e => setDienstForm(p => ({ ...p, beschrijving: e.target.value }))} placeholder="Vertel meer over wat je aanbiedt..." rows={4} style={{ ...inp, resize: "vertical", marginBottom: 20 }} />
-              <button type="button" onClick={dienstToevoegen} disabled={bezig} style={{ background: cirkel.kleur, color: "#fff", border: "none", padding: "12px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: bezig ? "not-allowed" : "pointer", width: "100%", opacity: bezig ? 0.7 : 1 }}>
+              <button type="button" onClick={dienstToevoegen} disabled={bezig} style={{ ...btnPrimary, background: cirkel.kleur, opacity: bezig ? 0.7 : 1, cursor: bezig ? "not-allowed" : "pointer" }}>
                 {bezig ? "Bezig..." : "Dienst plaatsen"}
               </button>
             </div>
@@ -1313,19 +1366,19 @@ function App() {
 
         {/* ══ NIEUWE CIRKEL (alleen super beheerder) ══ */}
         {scherm === "nieuweCirkel" && isSuperBeheerder && (
-          <div>
-            <button type="button" onClick={() => setScherm("superBeheer")} style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 14, marginBottom: 18 }}>&#8592; Terug</button>
+          <div className="bc-fade">
+            <button type="button" onClick={() => setScherm("superBeheer")} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 14, fontWeight: 600, marginBottom: 20, display: "flex", alignItems: "center", gap: 4 }}>← Terug</button>
             <div style={card}>
-              <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 6 }}>Nieuwe buurtcirkel</h2>
-              <p style={{ color: "#999", fontSize: 13, marginBottom: 20 }}>Kies een unieke BC-code voor deze cirkel. Leden gebruiken deze code bij aanmelding.</p>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>BC-code</label>
-              <input value={cirkelForm.code} onChange={e => setCirkelForm(p => ({ ...p, code: e.target.value.toUpperCase() }))} placeholder="bijv. BC-PIJP of BC-1042" style={{ ...inp, marginBottom: 6, fontFamily: "monospace" }} />
-              <div style={{ fontSize: 12, color: "#aaa", marginBottom: 14 }}>Begint altijd met BC- gevolgd door letters of cijfers</div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>Naam van de wijk</label>
+              <h2 style={{ fontWeight: 800, fontSize: 20, marginBottom: 4, letterSpacing: "-0.5px" }}>Nieuwe buurtcirkel</h2>
+              <p style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>Kies een unieke BC-code. Leden gebruiken deze bij aanmelding.</p>
+              <label style={label}>BC-code</label>
+              <input value={cirkelForm.code} onChange={e => setCirkelForm(p => ({ ...p, code: e.target.value.toUpperCase() }))} placeholder="bijv. BC-PIJP of BC-1042" style={{ ...inp, marginBottom: 6, fontFamily: "monospace", fontWeight: 600 }} />
+              <div style={{ fontSize: 12, color: T.mutedLt, marginBottom: 16 }}>Begint altijd met BC- gevolgd door letters of cijfers</div>
+              <label style={label}>Naam van de wijk</label>
               <input value={cirkelForm.naam} onChange={e => setCirkelForm(p => ({ ...p, naam: e.target.value }))} placeholder="bijv. De Pijp" style={{ ...inp, marginBottom: 14 }} />
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>Stad</label>
+              <label style={label}>Stad</label>
               <input value={cirkelForm.stad} onChange={e => setCirkelForm(p => ({ ...p, stad: e.target.value }))} placeholder="bijv. Amsterdam" style={{ ...inp, marginBottom: 20 }} />
-              <button type="button" onClick={nieuweCirkelAanmaken} disabled={bezig} style={{ background: "#6C3FC5", color: "#fff", border: "none", padding: "12px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: bezig ? "not-allowed" : "pointer", width: "100%", opacity: bezig ? 0.7 : 1 }}>
+              <button type="button" onClick={nieuweCirkelAanmaken} disabled={bezig} style={{ ...btnPrimary, background: "#6C3FC5", opacity: bezig ? 0.7 : 1, cursor: bezig ? "not-allowed" : "pointer" }}>
                 {bezig ? "Bezig..." : "Buurtcirkel aanmaken"}
               </button>
             </div>
@@ -1336,30 +1389,24 @@ function App() {
       {/* ── WACHTWOORD WIJZIGEN MODAL ── */}
       <Modal open={wijzigModal} onClose={() => { setWijzigModal(false); setWijzigForm({ huidig: "", nieuw: "", herhaal: "" }); setWijzigFout(""); }}>
         <div>
-          <div style={{ fontWeight: 900, fontSize: 20, marginBottom: 6 }}>Wachtwoord wijzigen</div>
-          <p style={{ color: "#666", fontSize: 14, marginBottom: 20 }}>Voer je huidige wachtwoord in en kies een nieuw wachtwoord.</p>
-          {wijzigFout && <div style={{ background: "#fff0f0", color: "#c0392b", padding: "10px 14px", borderRadius: 8, fontSize: 13, marginBottom: 14, border: "1px solid #fcc" }}>{wijzigFout}</div>}
+          <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 4, letterSpacing: "-0.3px" }}>Wachtwoord wijzigen</div>
+          <p style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>Voer je huidige wachtwoord in en kies een nieuw wachtwoord.</p>
+          {wijzigFout && <div style={foutBox}>{wijzigFout}</div>}
           {[
             { label: "Huidig wachtwoord", key: "huidig" },
             { label: "Nieuw wachtwoord", key: "nieuw" },
             { label: "Herhaal nieuw wachtwoord", key: "herhaal" },
           ].map(f => (
             <div key={f.key}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>{f.label}</label>
-              <input
-                type="password"
-                value={wijzigForm[f.key]}
-                onChange={e => setWijzigForm(p => ({ ...p, [f.key]: e.target.value }))}
-                placeholder="••••••••"
-                style={{ ...inp, marginBottom: 12 }}
-              />
+              <label style={label}>{f.label}</label>
+              <input type="password" value={wijzigForm[f.key]} onChange={e => setWijzigForm(p => ({ ...p, [f.key]: e.target.value }))} placeholder="••••••••" style={{ ...inp, marginBottom: 14 }} />
             </div>
           ))}
-          <div style={{ fontSize: 12, color: "#aaa", marginBottom: 18 }}>Min. 8 tekens, 1 hoofdletter, 1 speciaal teken</div>
-          <button type="button" onClick={wachtwoordWijzigen} disabled={bezig} style={{ background: "#E8503A", color: "#fff", border: "none", padding: "11px", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: bezig ? "not-allowed" : "pointer", width: "100%", marginBottom: 8, opacity: bezig ? 0.7 : 1 }}>
+          <div style={{ fontSize: 12, color: T.mutedLt, marginBottom: 18 }}>Min. 8 tekens, 1 hoofdletter, 1 speciaal teken</div>
+          <button type="button" onClick={wachtwoordWijzigen} disabled={bezig} style={{ ...btnPrimary, marginBottom: 8, opacity: bezig ? 0.7 : 1, cursor: bezig ? "not-allowed" : "pointer" }}>
             {bezig ? "Bezig..." : "Wachtwoord wijzigen"}
           </button>
-          <button type="button" onClick={() => { setWijzigModal(false); setWijzigForm({ huidig: "", nieuw: "", herhaal: "" }); setWijzigFout(""); }} style={{ background: "#eee", color: "#555", border: "none", padding: "11px", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer", width: "100%" }}>
+          <button type="button" onClick={() => { setWijzigModal(false); setWijzigForm({ huidig: "", nieuw: "", herhaal: "" }); setWijzigFout(""); }} style={btnSecondary}>
             Annuleren
           </button>
         </div>
@@ -1369,19 +1416,19 @@ function App() {
       <Modal open={!!verzoekModal} onClose={() => setVerzoekModal(null)}>
         {verzoekModal && (
           <div>
-            <div style={{ fontWeight: 900, fontSize: 20, marginBottom: 6 }}>Dienst aanvragen</div>
-            <p style={{ color: "#666", fontSize: 14, marginBottom: 16 }}>
+            <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 4, letterSpacing: "-0.3px" }}>Dienst aanvragen</div>
+            <p style={{ color: T.muted, fontSize: 13, marginBottom: 16 }}>
               Je vraagt <strong>{verzoekModal.lid_naam}</strong> om: <em>{verzoekModal.titel}</em>
             </p>
-            <div style={{ background: "#f9f9f9", borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 14, color: "#444", lineHeight: 1.6 }}>
+            <div style={{ background: T.bg, borderRadius: T.r, padding: 14, marginBottom: 16, fontSize: 13, color: T.muted, lineHeight: 1.6, border: `1px solid ${T.border}` }}>
               {verzoekModal.beschrijving}
             </div>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>Optioneel bericht</label>
+            <label style={label}>Optioneel bericht</label>
             <textarea value={verzoekBericht} onChange={e => setVerzoekBericht(e.target.value)} placeholder="Vertel iets over je situatie of vraag..." rows={3} style={{ ...inp, resize: "vertical", marginBottom: 18 }} />
-            <button type="button" onClick={verzoekVersturen} disabled={bezig} style={{ background: cirkel?.kleur || "#E8503A", color: "#fff", border: "none", padding: "11px", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: bezig ? "not-allowed" : "pointer", width: "100%", marginBottom: 8, opacity: bezig ? 0.7 : 1 }}>
+            <button type="button" onClick={verzoekVersturen} disabled={bezig} style={{ ...btnPrimary, background: cirkel?.kleur || T.accent, marginBottom: 8, opacity: bezig ? 0.7 : 1, cursor: bezig ? "not-allowed" : "pointer" }}>
               {bezig ? "Bezig..." : "Verzoek versturen"}
             </button>
-            <button type="button" onClick={() => setVerzoekModal(null)} style={{ background: "#eee", color: "#555", border: "none", padding: "11px", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer", width: "100%" }}>
+            <button type="button" onClick={() => setVerzoekModal(null)} style={btnSecondary}>
               Annuleren
             </button>
           </div>
