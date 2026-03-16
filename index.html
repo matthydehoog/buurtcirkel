@@ -1,13 +1,214 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="nl">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>buurtcirkel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#1a1a2e" />
+    <meta name="description" content="Diensten uitwisselen in jouw buurt" />
+
+    <!-- PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="BuurtCirkel" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+
+    <title>BuurtCirkel</title>
+
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #1a1a2e;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      #root { min-height: 100vh; }
+
+      /* ── SPLASH SCREEN ── */
+      #splash {
+        position: fixed; inset: 0;
+        background: #1a1a2e;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        z-index: 99999;
+        transition: opacity 0.5s ease;
+      }
+      #splash.verbergen { opacity: 0; pointer-events: none; }
+      #splash img { width: 96px; height: 96px; border-radius: 22px; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(232,80,58,0.35); }
+      #splash .naam { font-size: 28px; font-weight: 900; color: #fff; letter-spacing: -0.5px; }
+      #splash .naam span { color: #E8503A; }
+      #splash .sub { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 6px; }
+      #splash .laadbalk { width: 120px; height: 3px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-top: 32px; overflow: hidden; }
+      #splash .laadbalk-inner { height: 100%; background: #E8503A; border-radius: 3px; animation: laden 1.4s ease forwards; }
+      @keyframes laden { from { width: 0% } to { width: 100% } }
+
+      /* ── OFFLINE BANNER ── */
+      #offline-banner {
+        display: none; position: fixed; top: 0; left: 0; right: 0;
+        background: #c0392b; color: #fff; text-align: center;
+        padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+        font-size: 13px; font-weight: 600; z-index: 9998;
+      }
+      #offline-banner.zichtbaar { display: block; }
+
+      /* ── ANDROID INSTALL BANNER ── */
+      #install-banner {
+        display: none; position: fixed; bottom: 20px; left: 50%;
+        transform: translateX(-50%);
+        background: #1a1a2e; color: #fff;
+        padding: 14px 20px; border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        z-index: 9999; align-items: center; gap: 14px;
+        max-width: 340px; width: calc(100% - 40px);
+        border: 1px solid rgba(255,255,255,0.1);
+      }
+      #install-banner.zichtbaar { display: flex; }
+      #install-banner img { width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; }
+      #install-banner .tekst { flex: 1; }
+      #install-banner .tekst strong { display: block; font-size: 14px; }
+      #install-banner .tekst span { font-size: 12px; color: #aaa; }
+      #install-knop {
+        background: #E8503A; color: #fff; border: none;
+        padding: 8px 16px; border-radius: 20px;
+        font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap;
+      }
+      #install-sluit {
+        background: none; border: none; color: #888;
+        cursor: pointer; font-size: 18px; padding: 0 4px; line-height: 1;
+      }
+
+      /* ── iOS INSTALL BANNER ── */
+      #ios-banner {
+        display: none; position: fixed; bottom: 24px; left: 50%;
+        transform: translateX(-50%);
+        background: #1a1a2e; color: #fff;
+        padding: 16px 20px; border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        z-index: 9999; max-width: 320px; width: calc(100% - 40px);
+        border: 1px solid rgba(255,255,255,0.12); text-align: center;
+      }
+      #ios-banner.zichtbaar { display: block; }
+      #ios-banner::after {
+        content: ""; position: absolute; bottom: -8px; left: 50%;
+        transform: translateX(-50%);
+        border-left: 8px solid transparent; border-right: 8px solid transparent;
+        border-top: 8px solid #1a1a2e;
+      }
+      #ios-banner .ios-titel { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+      #ios-banner .ios-stap { font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.8; margin-bottom: 12px; }
+      #ios-banner .ios-stap .icoon { display: inline-block; background: rgba(255,255,255,0.1); border-radius: 6px; padding: 1px 7px; margin: 0 2px; }
+      #ios-sluit {
+        background: none; border: 1px solid rgba(255,255,255,0.2);
+        color: #aaa; padding: 6px 16px; border-radius: 20px; font-size: 12px; cursor: pointer;
+      }
+    </style>
   </head>
   <body>
+
+    <!-- Splash screen -->
+    <div id="splash">
+      <img src="/icons/icon-192.png" alt="BuurtCirkel" />
+      <div class="naam">Buurt<span>Cirkel</span></div>
+      <div class="sub">Diensten uitwisselen met je buren</div>
+      <div class="laadbalk"><div class="laadbalk-inner"></div></div>
+    </div>
+
+    <!-- Offline melding -->
+    <div id="offline-banner">📡 Geen internetverbinding — sommige functies zijn niet beschikbaar</div>
+
+    <!-- App root -->
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+
+    <!-- Android installeer banner -->
+    <div id="install-banner">
+      <img src="/icons/icon-192.png" alt="" />
+      <div class="tekst">
+        <strong>BuurtCirkel installeren</strong>
+        <span>Voeg toe aan je beginscherm</span>
+      </div>
+      <button id="install-knop">Installeren</button>
+      <button id="install-sluit">✕</button>
+    </div>
+
+    <!-- iOS installeer instructie -->
+    <div id="ios-banner">
+      <div class="ios-titel">📲 Installeer BuurtCirkel</div>
+      <div class="ios-stap">
+        Tik op <span class="icoon">⎙</span> Delen<br />
+        en kies <strong>"Zet op beginscherm"</strong>
+      </div>
+      <button id="ios-sluit">Niet nu</button>
+    </div>
+
+    <!-- React + Babel CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- App -->
+    <script type="text/babel" src="/App.jsx" data-type="module"></script>
+
+    <script>
+      // Splash verbergen
+      window.addEventListener("load", () => {
+        setTimeout(() => {
+          const s = document.getElementById("splash");
+          s.classList.add("verbergen");
+          setTimeout(() => s.remove(), 500);
+        }, 1400);
+      });
+
+      // Offline detectie
+      const ob = document.getElementById("offline-banner");
+      function checkOnline() {
+        navigator.onLine ? ob.classList.remove("zichtbaar") : ob.classList.add("zichtbaar");
+      }
+      window.addEventListener("online", checkOnline);
+      window.addEventListener("offline", checkOnline);
+      checkOnline();
+
+      // Service Worker
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/sw.js")
+            .then(r => console.log("SW:", r.scope))
+            .catch(e => console.warn("SW fout:", e));
+        });
+      }
+
+      // Android installeer banner
+      let prompt = null;
+      window.addEventListener("beforeinstallprompt", e => {
+        e.preventDefault(); prompt = e;
+        document.getElementById("install-banner").classList.add("zichtbaar");
+      });
+      document.getElementById("install-knop").addEventListener("click", async () => {
+        if (!prompt) return;
+        prompt.prompt();
+        const { outcome } = await prompt.userChoice;
+        if (outcome === "accepted") document.getElementById("install-banner").classList.remove("zichtbaar");
+        prompt = null;
+      });
+      document.getElementById("install-sluit").addEventListener("click", () => {
+        document.getElementById("install-banner").classList.remove("zichtbaar");
+      });
+      window.addEventListener("appinstalled", () => {
+        document.getElementById("install-banner").classList.remove("zichtbaar");
+      });
+
+      // iOS installeer instructie
+      const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      const isStandalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+      if (isIos && !isStandalone && !sessionStorage.getItem("ios-gezien")) {
+        setTimeout(() => document.getElementById("ios-banner").classList.add("zichtbaar"), 3000);
+      }
+      document.getElementById("ios-sluit").addEventListener("click", () => {
+        document.getElementById("ios-banner").classList.remove("zichtbaar");
+        sessionStorage.setItem("ios-gezien", "1");
+      });
+    </script>
   </body>
 </html>

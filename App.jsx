@@ -1,4 +1,4 @@
-const APP_VERSIE = "2.8.1";
+const APP_VERSIE = "2.7.3";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
