@@ -1,4 +1,4 @@
-const APP_VERSIE = "2.8.2";
+const APP_VERSIE = "2.8.3";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -624,6 +624,16 @@ function App() {
       setAlleGebruikers(prev => prev.filter(g => g.id !== id));
       setSuperWachtenden(prev => prev.filter(g => g.id !== id));
       showToast(`${naam} verwijderd.`);
+    } catch (e) { showToast("Fout: " + e.message, "fout"); }
+  }
+
+  async function superGebruikerRolWijzigen(id, naam, huidigeRol, nieuweRol) {
+    if (huidigeRol === nieuweRol) return;
+    if (!window.confirm(`Rol van "${naam}" wijzigen van "${huidigeRol}" naar "${nieuweRol}"?`)) return;
+    try {
+      await api.updateAccount(id, { rol: nieuweRol });
+      setAlleGebruikers(prev => prev.map(g => g.id === id ? { ...g, rol: nieuweRol } : g));
+      showToast(`Rol van ${naam} gewijzigd naar ${nieuweRol}.`);
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
   }
 
@@ -1258,9 +1268,19 @@ function App() {
                         </div>
                       </div>
                       {g.rol !== "super_beheerder" && (
-                        <button type="button" onClick={() => superGebruikerVerwijderen(g.id, g.naam)} style={{ background: "#fee", color: "#c0392b", border: "1px solid #fcc", padding: "7px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-                          🗑 Verwijderen
-                        </button>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                          <select
+                            value={g.rol}
+                            onChange={e => superGebruikerRolWijzigen(g.id, g.naam, g.rol, e.target.value)}
+                            style={{ padding: "6px 10px", borderRadius: 8, border: "1.5px solid #ddd", fontSize: 13, background: "#fafafa", cursor: "pointer" }}
+                          >
+                            <option value="lid">lid</option>
+                            <option value="beheerder">beheerder</option>
+                          </select>
+                          <button type="button" onClick={() => superGebruikerVerwijderen(g.id, g.naam)} style={{ background: "#fee", color: "#c0392b", border: "1px solid #fcc", padding: "7px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                            🗑 Verwijderen
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
