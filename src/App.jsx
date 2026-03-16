@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+
 const APP_VERSIE = "2.7.3";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
@@ -1305,7 +1307,4 @@ function App() {
 }
 
 
-// ── PWA: mount React app ──────────────────────────────────────────
-const { useState, useEffect } = React;
-const rootEl = document.getElementById("root");
-ReactDOM.createRoot(rootEl).render(React.createElement(App));
+export default App;
