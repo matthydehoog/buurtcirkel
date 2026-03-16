@@ -1,13 +1,11 @@
-import { useState, useEffect } from "react";
-
-const APP_VERSIE = "2.7.1";
+const APP_VERSIE = "2.7.3";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Lxs6J-YBpbBl0sQ6XBZjMA_R0_P9i_n";
 
 // ─── HCAPTCHA ─────────────────────────────────────────────────────
-const HCAPTCHA_SITE_KEY = "ef56a732-ebfc-459e-9b72-ffbc5e0e8a0e"; // ← vervang dit
+const HCAPTCHA_SITE_KEY = "JOUW_HCAPTCHA_SITE_KEY"; // ← vervang dit
 
 // Actieve Auth sessie (token wordt na login ingesteld)
 let authToken = null;
@@ -310,7 +308,7 @@ function SuperCirkelKaart({ cirkel, onKoppel, onVerwijder, showToast, sb }) {
 }
 
 // ─── HOOFD APP ────────────────────────────────────────────────────
-export default function App() {
+function App() {
   const [gebruiker, setGebruiker]     = useState(null);
   const [scherm, setScherm]           = useState("login");
   const [cirkels, setCirkels]         = useState([]);
@@ -876,12 +874,7 @@ export default function App() {
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 5 }}>Buurtcirkel code</label>
               <input value={aanmeldForm.cirkelId} onChange={e => setAanmeldForm(p => ({ ...p, cirkelId: e.target.value.toUpperCase() }))} placeholder="bijv. BC-1042" style={{ ...inp, marginBottom: 6 }} />
               <div style={{ fontSize: 12, color: "#aaa", marginBottom: 20 }}>
-                Beschikbaar:{" "}
-                {cirkels.map(c => (
-                  <button key={c.id} type="button" onClick={() => setAanmeldForm(p => ({ ...p, cirkelId: c.id }))} style={{ background: "none", border: "none", color: "#E8503A", cursor: "pointer", fontSize: 12, textDecoration: "underline", padding: "0 4px" }}>
-                    {c.id} ({c.naam})
-                  </button>
-                ))}
+                Je ontvangt deze code van de beheerder van je buurtcirkel.
               </div>
               <HCaptcha
                 id="aanmeld-captcha"
@@ -1311,3 +1304,8 @@ export default function App() {
   );
 }
 
+
+// ── PWA: mount React app ──────────────────────────────────────────
+const { useState, useEffect } = React;
+const rootEl = document.getElementById("root");
+ReactDOM.createRoot(rootEl).render(React.createElement(App));
