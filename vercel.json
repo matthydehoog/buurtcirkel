@@ -1,6 +1,9 @@
 {
-  "buildCommand": null,
+  "version": 2,
+  "buildCommand": "",
   "outputDirectory": ".",
+  "installCommand": "",
+  "framework": null,
   "rewrites": [
     {
       "source": "/((?!icons|manifest\\.json|sw\\.js|App\\.jsx).*)",
