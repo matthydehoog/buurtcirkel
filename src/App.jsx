@@ -7,7 +7,7 @@ const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Lxs6J-YBpbBl0sQ6XBZjMA_R0_P9i_n";
 
 // ─── HCAPTCHA ─────────────────────────────────────────────────────
-const HCAPTCHA_SITE_KEY = "JOUW_HCAPTCHA_SITE_KEY"; // ← vervang dit
+const HCAPTCHA_SITE_KEY = "ef56a732-ebfc-459e-9b72-ffbc5e0e8a0e"; // ← vervang dit
 
 // Actieve Auth sessie (token wordt na login ingesteld)
 let authToken = null;
