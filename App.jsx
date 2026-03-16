@@ -1,4 +1,4 @@
-const APP_VERSIE = "2.7.3";
+const APP_VERSIE = "2.8.2";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -86,6 +86,9 @@ const api = {
 
   // Alle wachtende accounts (voor super beheerder)
   getAlleWachtenden: () => sb("accounts?select=*&status=eq.wacht&order=naam"),
+
+  // Alle accounts (voor super beheerder)
+  getAlleAccounts: () => sb("accounts?select=*&order=cirkel_id,naam"),
 
   // Login pogingen
   getLoginPoging:    (email) => sb(`login_pogingen?select=*&email=eq.${encodeURIComponent(email)}`),
@@ -315,6 +318,7 @@ function App() {
   const [cirkelId, setCirkelId]       = useState(null);
   const [mijnCirkels, setMijnCirkels]       = useState([]); // voor beheerder: alle beheerde cirkels
   const [superWachtenden, setSuperWachtenden] = useState([]); // alle wachtende accounts (super beheerder)
+  const [alleGebruikers, setAlleGebruikers]   = useState([]); // alle accounts (super beheerder)
   const [leden, setLeden]             = useState([]);
   const [diensten, setDiensten]       = useState([]);
   const [verzoeken, setVerzoeken]     = useState([]); // inkomende verzoeken voor mijn diensten
@@ -411,6 +415,13 @@ function App() {
     } catch (e) { console.error("Wachtenden laden mislukt:", e.message); }
   }
 
+  async function laadAlleGebruikers() {
+    try {
+      const data = await api.getAlleAccounts();
+      setAlleGebruikers(data);
+    } catch (e) { console.error("Gebruikers laden mislukt:", e.message); }
+  }
+
   // ── AUTH ────────────────────────────────────────────────────────
   async function inloggen() {
     setLoginFout("");
@@ -446,7 +457,7 @@ function App() {
 
       setGebruiker(acc);
       if (acc.rol === "super_beheerder") {
-        await Promise.all([laadCirkels(), laadSuperWachtenden()]);
+        await Promise.all([laadCirkels(), laadSuperWachtenden(), laadAlleGebruikers()]);
         setScherm("superBeheer");
         showToast("Welkom, " + acc.naam.split(" ")[0] + "!");
         return;
@@ -603,6 +614,16 @@ function App() {
       setLeden(prev => prev.filter(l => l.id !== id));
       setDiensten(prev => prev.filter(d => d.lid_id !== id));
       showToast("Lid verwijderd.");
+    } catch (e) { showToast("Fout: " + e.message, "fout"); }
+  }
+
+  async function superGebruikerVerwijderen(id, naam) {
+    if (!window.confirm(`Weet je zeker dat je "${naam}" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.`)) return;
+    try {
+      await api.deleteAccount(id);
+      setAlleGebruikers(prev => prev.filter(g => g.id !== id));
+      setSuperWachtenden(prev => prev.filter(g => g.id !== id));
+      showToast(`${naam} verwijderd.`);
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
   }
 
@@ -1140,12 +1161,17 @@ function App() {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, flexWrap: "wrap", gap: 10 }}>
               <h2 style={{ fontWeight: 900, fontSize: 22 }}>Super beheer</h2>
-              {superWachtenden.length > 0 && (
-                <button type="button" onClick={() => setScherm("superGoedkeuren")} style={{ background: "#FFF3CD", color: "#856404", border: "1px solid #F5A623", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-                  ⏳ Aanmeldingen goedkeuren
-                  <span style={{ background: "#E8503A", color: "#fff", fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 20 }}>{superWachtenden.length}</span>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {superWachtenden.length > 0 && (
+                  <button type="button" onClick={() => setScherm("superGoedkeuren")} style={{ background: "#FFF3CD", color: "#856404", border: "1px solid #F5A623", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                    ⏳ Aanmeldingen
+                    <span style={{ background: "#E8503A", color: "#fff", fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 20 }}>{superWachtenden.length}</span>
+                  </button>
+                )}
+                <button type="button" onClick={() => { laadAlleGebruikers(); setScherm("superGebruikers"); }} style={{ background: "#f0f0f0", color: "#444", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                  👥 Gebruikers
                 </button>
-              )}
+              </div>
             </div>
             <p style={{ color: "#999", fontSize: 13, marginBottom: 20 }}>Overzicht van alle buurtcirkels en beheerders. Koppel cirkels aan beheerders.</p>
 
@@ -1195,6 +1221,47 @@ function App() {
                         <button type="button" onClick={() => lidGoedkeuren(lid.id)} style={{ background: "#27ae60", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Goedkeuren</button>
                         <button type="button" onClick={() => lidAfwijzen(lid.id)} style={{ background: "#e74c3c", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Afwijzen</button>
                       </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ══ SUPER GEBRUIKERS ══ */}
+        {scherm === "superGebruikers" && isSuperBeheerder && (
+          <div>
+            <button type="button" onClick={() => setScherm("superBeheer")} style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 14, marginBottom: 18 }}>&#8592; Terug</button>
+            <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 6 }}>Gebruikers beheren</h2>
+            <p style={{ color: "#999", fontSize: 13, marginBottom: 20 }}>Alle gebruikers over alle buurtcirkels. Je kunt gebruikers hier verwijderen.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {alleGebruikers.length === 0 ? (
+                <div style={{ ...card, color: "#bbb", textAlign: "center", padding: 24 }}>Geen gebruikers gevonden</div>
+              ) : alleGebruikers.map(g => {
+                const cirkelNaam = cirkels.find(c => c.id === g.cirkel_id);
+                const rolKleur = g.rol === "super_beheerder" ? "#6C3FC5" : g.rol === "beheerder" ? "#4A6FD9" : "#888";
+                const statusKleur = g.status === "actief" ? { bg: "#D4EDDA", text: "#155724" } : g.status === "wacht" ? { bg: "#FFF3CD", text: "#856404" } : { bg: "#F8D7DA", text: "#721C24" };
+                return (
+                  <div key={g.id} style={{ ...card, borderLeft: `4px solid ${rolKleur}` }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                      <Avatar tekst={ini(g.naam)} size={40} kleur={rolKleur} />
+                      <div style={{ flex: 1, minWidth: 120 }}>
+                        <div style={{ fontWeight: 700, fontSize: 15 }}>{g.naam}</div>
+                        <div style={{ fontSize: 13, color: "#999" }}>{g.email}</div>
+                        {g.telefoon && <div style={{ fontSize: 13, color: "#999" }}>📱 {g.telefoon}</div>}
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+                          <span style={{ background: "#f0f0f0", color: "#555", padding: "2px 8px", borderRadius: 20, fontFamily: "monospace", fontSize: 12 }}>{g.cirkel_id}</span>
+                          {cirkelNaam && <span style={{ color: "#aaa", fontSize: 12 }}>{cirkelNaam.naam}</span>}
+                          <span style={{ background: statusKleur.bg, color: statusKleur.text, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>{g.status}</span>
+                          <span style={{ background: rolKleur, color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>{g.rol}</span>
+                        </div>
+                      </div>
+                      {g.rol !== "super_beheerder" && (
+                        <button type="button" onClick={() => superGebruikerVerwijderen(g.id, g.naam)} style={{ background: "#fee", color: "#c0392b", border: "1px solid #fcc", padding: "7px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                          🗑 Verwijderen
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
