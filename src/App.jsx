@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const APP_VERSIE = "2.7.0";
+const APP_VERSIE = "2.7.1";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
