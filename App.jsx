@@ -618,7 +618,7 @@ function App() {
     if (!/[A-Z]/.test(wachtwoord))     { setAanmeldFout("Wachtwoord moet minimaal 1 hoofdletter bevatten."); return; }
     if (!/[^A-Za-z0-9]/.test(wachtwoord)) { setAanmeldFout("Wachtwoord moet minimaal 1 speciaal teken bevatten (bijv. ! @ # $)."); return; }
     if (!/^[0-9\s\+\-]{7,15}$/.test(telefoon.trim())) { setAanmeldFout("Voer een geldig telefoonnummer in."); return; }
-    if (!cirkels.find(c => c.id === cId)) { setAanmeldFout("Onbekende buurtcirkelcode."); return; }
+    //if (!cirkels.find(c => c.id === cId)) { setAanmeldFout("Onbekende buurtcirkelcode."); return; }
     if (!aanmeldCaptcha) { setAanmeldFout("Bevestig dat je geen robot bent."); return; }
     setBezig(true);
     try {
