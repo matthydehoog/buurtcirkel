@@ -1,11 +1,11 @@
-const APP_VERSIE = "2.8.3";
+const APP_VERSIE = "2.8.4";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Lxs6J-YBpbBl0sQ6XBZjMA_R0_P9i_n";
 
 // ─── HCAPTCHA ─────────────────────────────────────────────────────
-const HCAPTCHA_SITE_KEY = "ef56a732-ebfc-459e-9b72-ffbc5e0e8a0e"; // ← vervang dit
+const HCAPTCHA_SITE_KEY = "ef56a732-ebfc-459e-9b72-ffbc5e0e8a0e";
 
 // Actieve Auth sessie (token wordt na login ingesteld)
 let authToken = null;
@@ -65,7 +65,7 @@ const api = {
   insertCirkel:  (row)     => sb("cirkels", { method: "POST", body: JSON.stringify(row) }),
   deleteCirkel:  (id)      => sb(`cirkels?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "return=minimal" }),
 
-  // Profielen (accounts tabel — geen wachtwoord meer)
+  // Profielen (accounts tabel)
   getProfiel:          (authId)   => sb(`accounts?select=*&auth_id=eq.${authId}`),
   getAccountsByCirkel: (cirkelId) => sb(`accounts?select=*&cirkel_id=eq.${encodeURIComponent(cirkelId)}&order=naam`),
   insertAccount:       (row)      => sb("accounts", { method: "POST", body: JSON.stringify(row) }),
@@ -102,7 +102,6 @@ const api = {
 
 // ─── DESIGN SYSTEEM ───────────────────────────────────────────────
 const T = {
-  // Kleuren
   bg:       "#F7F8FA",
   surface:  "#FFFFFF",
   border:   "#EAECF0",
@@ -114,15 +113,12 @@ const T = {
   success:  "#059669",
   warning:  "#D97706",
   danger:   "#DC2626",
-  // Typografie
   fontDisplay: "'DM Sans', -apple-system, sans-serif",
-  // Radii
   r:   "10px",
   rLg: "16px",
   rXl: "20px",
 };
 
-// CSS globaal injecteren
 if (!document.getElementById("bc-global-style")) {
   const s = document.createElement("style");
   s.id = "bc-global-style";
@@ -137,7 +133,7 @@ if (!document.getElementById("bc-global-style")) {
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     .bc-fade { animation: fadeIn 0.2s ease; }
-    ::-webkit-scrollbar { width: 6px; } 
+    ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
   `;
@@ -196,11 +192,9 @@ const label = {
   letterSpacing: "0.05em",
 };
 
-
 // ─── HCAPTCHA WIDGET ──────────────────────────────────────────────
 function HCaptcha({ id = "hcaptcha-widget", onVerify, onExpire }) {
   useEffect(() => {
-    // Laad hCaptcha script als het nog niet geladen is
     if (!document.getElementById("hcaptcha-script")) {
       const script = document.createElement("script");
       script.id = "hcaptcha-script";
@@ -210,7 +204,6 @@ function HCaptcha({ id = "hcaptcha-widget", onVerify, onExpire }) {
       document.head.appendChild(script);
     }
 
-    // Render widget zodra script geladen is
     function renderWidget() {
       const el = document.getElementById(id);
       if (!el || el.dataset.rendered) return;
@@ -233,7 +226,6 @@ function HCaptcha({ id = "hcaptcha-widget", onVerify, onExpire }) {
     }
 
     return () => {
-      // Cleanup: reset widget bij unmount
       const el = document.getElementById(id);
       if (el) {
         el.dataset.rendered = "";
@@ -296,8 +288,7 @@ function Foutmelding({ tekst, onHerlaad }) {
   );
 }
 
-
-// ─── SUPER CIRKEL KAART (sub-component) ───────────────────────────
+// ─── SUPER CIRKEL KAART ───────────────────────────────────────────
 function SuperCirkelKaart({ cirkel, onKoppel, onVerwijder, showToast, sb }) {
   const [beheerders, setBeheerders] = useState([]);
   const [alleAcc, setAlleAcc]       = useState([]);
@@ -397,23 +388,22 @@ function App() {
   const [scherm, setScherm]           = useState("login");
   const [cirkels, setCirkels]         = useState([]);
   const [cirkelId, setCirkelId]       = useState(null);
-  const [mijnCirkels, setMijnCirkels]       = useState([]); // voor beheerder: alle beheerde cirkels
-  const [superWachtenden, setSuperWachtenden] = useState([]); // alle wachtende accounts (super beheerder)
-  const [alleGebruikers, setAlleGebruikers]   = useState([]); // alle accounts (super beheerder)
+  const [mijnCirkels, setMijnCirkels] = useState([]);
+  const [superWachtenden, setSuperWachtenden] = useState([]);
+  const [alleGebruikers, setAlleGebruikers]   = useState([]);
   const [leden, setLeden]             = useState([]);
   const [diensten, setDiensten]       = useState([]);
-  const [verzoeken, setVerzoeken]     = useState([]); // inkomende verzoeken voor mijn diensten
-  const [mijnVerzoeken, setMijnVerzoeken] = useState([]); // verzoeken die ik zelf verstuurd heb
+  const [verzoeken, setVerzoeken]     = useState([]);
+  const [mijnVerzoeken, setMijnVerzoeken] = useState([]);
   const [laden, setLaden]             = useState(false);
   const [fout, setFout]               = useState(null);
   const [filter, setFilter]           = useState("Alle");
   const [zoek, setZoek]               = useState("");
   const [toast, setToast]             = useState(null);
-  const [verzoekModal, setVerzoekModal] = useState(null); // dienst waarvoor verzoek wordt aangemaakt
+  const [verzoekModal, setVerzoekModal] = useState(null);
   const [verzoekBericht, setVerzoekBericht] = useState("");
   const [bezig, setBezig]             = useState(false);
 
-  // forms
   const [loginForm,   setLoginForm]   = useState({ email: "", wachtwoord: "" });
   const [aanmeldForm, setAanmeldForm] = useState({ naam: "", email: "", wachtwoord: "", herhaal: "", telefoon: "", cirkelId: "" });
   const [dienstForm,  setDienstForm]  = useState({ titel: "", categorie: "Overig", beschrijving: "" });
@@ -422,9 +412,9 @@ function App() {
   const [aanmeldFout, setAanmeldFout] = useState("");
   const [loginCaptcha,   setLoginCaptcha]   = useState(null);
   const [aanmeldCaptcha, setAanmeldCaptcha] = useState(null);
-  const [wijzigForm, setWijzigForm]         = useState({ huidig: "", nieuw: "", herhaal: "" });
-  const [wijzigFout, setWijzigFout]         = useState("");
-  const [wijzigModal, setWijzigModal]       = useState(false);
+  const [wijzigForm, setWijzigForm]   = useState({ huidig: "", nieuw: "", herhaal: "" });
+  const [wijzigFout, setWijzigFout]   = useState("");
+  const [wijzigModal, setWijzigModal] = useState(false);
 
   const cirkel           = cirkels.find(c => c.id === cirkelId) || null;
   const isBeheerder      = gebruiker?.rol === "beheerder" || gebruiker?.rol === "super_beheerder";
@@ -511,7 +501,6 @@ function App() {
     const email = loginForm.email.trim().toLowerCase();
     setBezig(true);
     try {
-      // ── 1. Blokkering controleren in database ─────────────────
       const pogingData = await api.getLoginPoging(email);
       const poging = pogingData[0] || null;
       if (poging?.geblokkerd_tot && new Date(poging.geblokkerd_tot) > new Date()) {
@@ -521,14 +510,11 @@ function App() {
         return;
       }
 
-      // ── 2. Supabase Auth sign-in → krijg JWT token ────────────
       const authData = await api.signIn(email, loginForm.wachtwoord, loginCaptcha);
       authToken = authData.access_token;
 
-      // Inloggen geslaagd → pogingen resetten
       await api.resetLoginPoging(email);
 
-      // ── 3. Haal profiel op via auth_id ────────────────────────
       const profielen = await api.getProfiel(authData.user.id);
       const acc = profielen[0];
       if (!acc) { setLoginFout("Geen profiel gevonden. Neem contact op met de beheerder."); authToken = null; return; }
@@ -550,7 +536,6 @@ function App() {
     } catch (e) {
       const isVerkeerd = e.message.includes("Invalid login");
       if (isVerkeerd) {
-        // ── Mislukte poging opslaan in database ───────────────────
         try {
           const huidigData = await api.getLoginPoging(email);
           const huidig = huidigData[0] || { pogingen: 0 };
@@ -593,9 +578,7 @@ function App() {
     if (!/[^A-Za-z0-9]/.test(nieuw))             { setWijzigFout("Wachtwoord moet minimaal 1 speciaal teken bevatten."); return; }
     setBezig(true);
     try {
-      // Verifieer huidig wachtwoord door opnieuw in te loggen
       await api.signIn(gebruiker.email, huidig);
-      // Wachtwoord bijwerken via Supabase Auth
       const result = await api.updatePassword(nieuw);
       if (result.error) throw new Error(result.error.message || result.msg || "Fout bij wijzigen");
       setWijzigModal(false);
@@ -623,6 +606,7 @@ function App() {
     setLoginForm({ email: "", wachtwoord: "" });
   }
 
+  // ── AANMELDEN — captcha fix: token direct uit signUp response ───
   async function aanmelden() {
     setAanmeldFout("");
     const { naam, email, wachtwoord, herhaal, telefoon, cirkelId: cId } = aanmeldForm;
@@ -638,23 +622,24 @@ function App() {
     if (!aanmeldCaptcha) { setAanmeldFout("Bevestig dat je geen robot bent."); return; }
     setBezig(true);
     try {
-      // 1. Maak Auth account aan bij Supabase
+      // 1. Maak Auth account aan — captcha token wordt hier verbruikt
       const authData = await api.signUp(email.trim(), wachtwoord, aanmeldCaptcha);
       const authId = authData.user?.id;
       if (!authId) throw new Error("Aanmaken Auth account mislukt.");
 
-      // 2. Direct inloggen om een JWT token te krijgen (nodig voor RLS INSERT)
-      const sessie = await api.signIn(email.trim(), wachtwoord);
-      authToken = sessie.access_token;
+      // 2. Haal token direct uit signUp response
+      //    (werkt omdat e-mailbevestiging uitstaat in Supabase)
+      authToken = authData.access_token;
+      if (!authToken) throw new Error("Geen sessie ontvangen na aanmelden.");
 
-      // 3. Sla profiel op in accounts tabel (zonder wachtwoord)
+      // 3. Sla profiel op in accounts tabel
       const nieuw = await api.insertAccount({
         auth_id: authId,
         naam: naam.trim(), email: email.trim(),
         telefoon: telefoon.trim(), rol: "lid", status: "wacht", cirkel_id: cId,
       });
 
-      // 4. Uitloggen — account moet eerst goedgekeurd worden
+      // 4. Uitloggen — account moet eerst goedgekeurd worden door beheerder
       try { await api.signOut(); } catch (_) {}
       authToken = null;
 
@@ -718,7 +703,6 @@ function App() {
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
   }
 
-  // Super beheerder: cirkel koppelen aan een beheerder
   async function cirkelKoppelenAanBeheerder(beheerderId, cId) {
     try {
       await api.insertBeheerderCirkel({ beheerder_id: beheerderId, cirkel_id: cId });
@@ -726,11 +710,9 @@ function App() {
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
   }
 
-  // Super beheerder: cirkel verwijderen (incl. alle gekoppelde data)
   async function cirkelVerwijderen(cId) {
     if (!window.confirm(`Weet je zeker dat je buurtcirkel ${cId} wilt verwijderen? Alle leden, diensten en verzoeken worden ook verwijderd.`)) return;
     try {
-      // Verwijder in volgorde: verzoeken → diensten → beheerder_cirkels → accounts → cirkel
       await sb(`verzoeken?cirkel_id=eq.${encodeURIComponent(cId)}`, { method: "DELETE", prefer: "return=minimal" });
       await sb(`diensten?cirkel_id=eq.${encodeURIComponent(cId)}`, { method: "DELETE", prefer: "return=minimal" });
       await sb(`beheerder_cirkels?cirkel_id=eq.${encodeURIComponent(cId)}`, { method: "DELETE", prefer: "return=minimal" });
@@ -854,18 +836,16 @@ function App() {
   }
 
   // ── GEFILTERDE DIENSTEN ─────────────────────────────────────────
-  const gefilterд = diensten.filter(d => {
-    // Actieve diensten zijn voor iedereen zichtbaar
-    // Wachtende diensten: alleen voor de aanbieder zelf en de beheerder
+  const gefilterd = diensten.filter(d => {
     if (d.status !== "actief" && !isBeheerder && d.lid_id !== gebruiker?.id) return false;
     return (filter === "Alle" || d.categorie === filter) &&
       (zoek === "" || d.titel.toLowerCase().includes(zoek.toLowerCase()) || d.beschrijving.toLowerCase().includes(zoek.toLowerCase()));
   });
 
-  const totaalOpenVerzoeken = openVerzoeken.length;
-  const totaalWachtenden = wachtenden.length;
-  const wachtendeDiensten = diensten.filter(d => d.status === "wacht");
-  const badgeCount = totaalOpenVerzoeken + totaalWachtenden + wachtendeDiensten.length;
+  const totaalOpenVerzoeken  = openVerzoeken.length;
+  const totaalWachtenden     = wachtenden.length;
+  const wachtendeDiensten    = diensten.filter(d => d.status === "wacht");
+  const badgeCount           = totaalOpenVerzoeken + totaalWachtenden + wachtendeDiensten.length;
 
   // ═══════════════════════════════════════════════════════════════
   return (
@@ -996,7 +976,6 @@ function App() {
         {/* ══ CIRKEL ══ */}
         {scherm === "cirkel" && cirkel && (
           <div className="bc-fade">
-            {/* Cirkel header */}
             <div style={{ background: cirkel.kleur, borderRadius: T.rXl, padding: "22px", marginBottom: 16, color: "#fff", position: "relative", overflow: "hidden" }}>
               <div style={{ position: "absolute", right: -20, top: -20, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
               <div style={{ position: "absolute", right: 20, bottom: -30, width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
@@ -1018,14 +997,14 @@ function App() {
               ))}
             </div>
 
-            {laden ? <Spinner /> : gefilterд.length === 0 ? (
+            {laden ? <Spinner /> : gefilterd.length === 0 ? (
               <div style={{ textAlign: "center", padding: "48px 0", color: T.mutedLt }}>
                 <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
                 <div style={{ fontWeight: 600 }}>Geen diensten gevonden</div>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {gefilterд.map(d => {
+                {gefilterd.map(d => {
                   const cat = CAT_STIJL[d.categorie] || CAT_STIJL.Overig;
                   const isEigen = d.lid_id === gebruiker?.id;
                   const alVerzocht = mijnVerzoeken.some(v => v.dienst_id === d.id);
@@ -1074,7 +1053,6 @@ function App() {
             <button type="button" onClick={() => setScherm("cirkel")} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 14, fontWeight: 600, marginBottom: 20, display: "flex", alignItems: "center", gap: 4 }}>← Terug</button>
             <h2 style={{ fontWeight: 800, fontSize: 20, marginBottom: 20, letterSpacing: "-0.5px" }}>Mijn verzoeken</h2>
 
-            {/* Inkomende verzoeken (voor mijn diensten) */}
             {verzoeken.length > 0 && (
               <div style={{ marginBottom: 24 }}>
                 <h3 style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, display: "flex", alignItems: "center", gap: 8, textTransform: "uppercase", letterSpacing: "0.05em", color: T.muted }}>
@@ -1108,7 +1086,6 @@ function App() {
               </div>
             )}
 
-            {/* Verstuurde verzoeken */}
             <div>
               <h3 style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em", color: T.muted }}>Verstuurd</h3>
               {mijnVerzoeken.length === 0 ? (
@@ -1437,7 +1414,6 @@ function App() {
     </div>
   );
 }
-
 
 // ── PWA: mount React app ──────────────────────────────────────────
 const { useState, useEffect } = React;
