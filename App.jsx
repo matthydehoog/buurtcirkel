@@ -100,10 +100,10 @@ const api = {
   insertBeheerderCirkel:(row)         => sb("beheerder_cirkels", { method: "POST", body: JSON.stringify(row) }),
 
   // Wachtwoord reset e-mail
-  resetWachtwoord: (email) => fetch(`${SUPABASE_URL}/auth/v1/recover`, {
+  resetWachtwoord: (email, captchaToken) => fetch(`${SUPABASE_URL}/auth/v1/recover`, {
     method: "POST",
     headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, gotrue_meta_security: { captcha_token: captchaToken } }),
   }).then(r => r.json()),
 };
 
@@ -422,6 +422,8 @@ function App() {
   const [wijzigForm, setWijzigForm]   = useState({ huidig: "", nieuw: "", herhaal: "" });
   const [wijzigFout, setWijzigFout]   = useState("");
   const [wijzigModal, setWijzigModal] = useState(false);
+  const [resetModal, setResetModal]     = useState(null);
+  const [resetCaptcha, setResetCaptcha] = useState(null);
 
   const cirkel           = cirkels.find(c => c.id === cirkelId) || null;
   const isBeheerder      = gebruiker?.rol === "beheerder" || gebruiker?.rol === "super_beheerder";
@@ -710,13 +712,18 @@ function App() {
   }
 
 
-  async function wachtwoordResetVersturen(email, naam) {
-    if (!window.confirm(`Wachtwoord reset e-mail versturen naar ${naam} (${email})?`)) return;
+  async function wachtwoordResetVersturen() {
+    if (!resetCaptcha) { showToast("Bevestig dat je geen robot bent.", "fout"); return; }
+    setBezig(true);
     try {
-      await api.resetWachtwoord(email);
-      showToast(`Reset e-mail verstuurd naar ${naam}.`);
+      await api.resetWachtwoord(resetModal.email, resetCaptcha);
+      showToast(`Reset e-mail verstuurd naar ${resetModal.naam}.`);
+      setResetModal(null);
+      setResetCaptcha(null);
     } catch (e) {
       showToast("Fout: " + e.message, "fout");
+    } finally {
+      setBezig(false);
     }
   }
 
@@ -1327,7 +1334,7 @@ function App() {
                           <button type="button" onClick={() => superGebruikerVerwijderen(g.id, g.naam)} style={{ background: "#fee", color: "#c0392b", border: "1px solid #fcc", padding: "7px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
                             🗑 Verwijderen
                           </button>
-                          <button type="button" onClick={() => wachtwoordResetVersturen(g.email, g.naam)} style={{ background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE", padding: "7px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                          <button type="button" onClick={() => { setResetModal({ email: g.email, naam: g.naam }); setResetCaptcha(null); }} style={{ background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE", padding: "7px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
                             ✉ Reset wachtwoord
                           </button>
                         </div>
@@ -1407,6 +1414,25 @@ function App() {
             Annuleren
           </button>
         </div>
+      </Modal>
+
+      {/* ── RESET WACHTWOORD MODAL ── */}
+      <Modal open={!!resetModal} onClose={() => { setResetModal(null); setResetCaptcha(null); }}>
+        {resetModal && (
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 4, letterSpacing: "-0.3px" }}>Reset wachtwoord</div>
+            <p style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>
+              Een reset e-mail wordt verstuurd naar <strong>{resetModal.naam}</strong> ({resetModal.email}).
+            </p>
+            <HCaptcha id="reset-captcha" onVerify={token => setResetCaptcha(token)} onExpire={() => setResetCaptcha(null)} />
+            <button type="button" onClick={wachtwoordResetVersturen} disabled={bezig} style={{ ...btnPrimary, marginBottom: 8, opacity: bezig ? 0.7 : 1, cursor: bezig ? "not-allowed" : "pointer" }}>
+              {bezig ? "Bezig..." : "Reset e-mail versturen"}
+            </button>
+            <button type="button" onClick={() => { setResetModal(null); setResetCaptcha(null); }} style={btnSecondary}>
+              Annuleren
+            </button>
+          </div>
+        )}
       </Modal>
 
       {/* ── VERZOEK MODAL ── */}
