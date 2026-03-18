@@ -98,6 +98,13 @@ const api = {
   // Beheerder-cirkels
   getBeheerderCirkels:  (beheerderId) => sb(`beheerder_cirkels?select=cirkel_id&beheerder_id=eq.${beheerderId}`),
   insertBeheerderCirkel:(row)         => sb("beheerder_cirkels", { method: "POST", body: JSON.stringify(row) }),
+
+  // Wachtwoord reset e-mail
+  resetWachtwoord: (email) => fetch(`${SUPABASE_URL}/auth/v1/recover`, {
+    method: "POST",
+    headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  }).then(r => r.json()),
 };
 
 // ─── DESIGN SYSTEEM ───────────────────────────────────────────────
@@ -618,7 +625,6 @@ function App() {
     if (!/[A-Z]/.test(wachtwoord))     { setAanmeldFout("Wachtwoord moet minimaal 1 hoofdletter bevatten."); return; }
     if (!/[^A-Za-z0-9]/.test(wachtwoord)) { setAanmeldFout("Wachtwoord moet minimaal 1 speciaal teken bevatten (bijv. ! @ # $)."); return; }
     if (!/^[0-9\s\+\-]{7,15}$/.test(telefoon.trim())) { setAanmeldFout("Voer een geldig telefoonnummer in."); return; }
-    //if (!cirkels.find(c => c.id === cId)) { setAanmeldFout("Onbekende buurtcirkelcode."); return; }
     if (!aanmeldCaptcha) { setAanmeldFout("Bevestig dat je geen robot bent."); return; }
     setBezig(true);
     try {
@@ -701,6 +707,17 @@ function App() {
       setAlleGebruikers(prev => prev.map(g => g.id === id ? { ...g, rol: nieuweRol } : g));
       showToast(`Rol van ${naam} gewijzigd naar ${nieuweRol}.`);
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
+  }
+
+
+  async function wachtwoordResetVersturen(email, naam) {
+    if (!window.confirm(`Wachtwoord reset e-mail versturen naar ${naam} (${email})?`)) return;
+    try {
+      await api.resetWachtwoord(email);
+      showToast(`Reset e-mail verstuurd naar ${naam}.`);
+    } catch (e) {
+      showToast("Fout: " + e.message, "fout");
+    }
   }
 
   async function cirkelKoppelenAanBeheerder(beheerderId, cId) {
@@ -1309,6 +1326,9 @@ function App() {
                           </select>
                           <button type="button" onClick={() => superGebruikerVerwijderen(g.id, g.naam)} style={{ background: "#fee", color: "#c0392b", border: "1px solid #fcc", padding: "7px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
                             🗑 Verwijderen
+                          </button>
+                          <button type="button" onClick={() => wachtwoordResetVersturen(g.email, g.naam)} style={{ background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE", padding: "7px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                            ✉ Reset wachtwoord
                           </button>
                         </div>
                       )}
