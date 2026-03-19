@@ -423,6 +423,7 @@ function App() {
   const [wijzigFout, setWijzigFout]   = useState("");
   const [wijzigModal, setWijzigModal] = useState(false);
   const [resetModal, setResetModal]     = useState(null);
+  const [gebruikerZoek, setGebruikerZoek] = useState("");
   const [resetCaptcha, setResetCaptcha] = useState(null);
 
   const cirkel           = cirkels.find(c => c.id === cirkelId) || null;
@@ -1354,10 +1355,26 @@ function App() {
             <button type="button" onClick={() => setScherm("superBeheer")} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 14, fontWeight: 600, marginBottom: 20, display: "flex", alignItems: "center", gap: 4 }}>← Terug</button>
             <h2 style={{ fontWeight: 800, fontSize: 20, marginBottom: 4, letterSpacing: "-0.5px" }}>Gebruikers beheren</h2>
             <p style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>Alle gebruikers over alle buurtcirkels.</p>
+            <input
+              value={gebruikerZoek}
+              onChange={e => setGebruikerZoek(e.target.value)}
+              placeholder="🔍  Zoek op naam, e-mail of cirkel..."
+              style={{ ...inp, marginBottom: 16 }}
+            />
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {alleGebruikers.length === 0 ? (
+              {alleGebruikers.filter(g =>
+                gebruikerZoek === "" ||
+                g.naam?.toLowerCase().includes(gebruikerZoek.toLowerCase()) ||
+                g.email?.toLowerCase().includes(gebruikerZoek.toLowerCase()) ||
+                g.cirkel_id?.toLowerCase().includes(gebruikerZoek.toLowerCase())
+              ).length === 0 ? (
                 <div style={{ ...card, color: T.mutedLt, textAlign: "center", padding: 24 }}>Geen gebruikers gevonden</div>
-              ) : alleGebruikers.map(g => {
+              ) : alleGebruikers.filter(g =>
+                gebruikerZoek === "" ||
+                g.naam?.toLowerCase().includes(gebruikerZoek.toLowerCase()) ||
+                g.email?.toLowerCase().includes(gebruikerZoek.toLowerCase()) ||
+                g.cirkel_id?.toLowerCase().includes(gebruikerZoek.toLowerCase())
+              ).map(g => {
                 const cirkelNaam = cirkels.find(c => c.id === g.cirkel_id);
                 const rolKleur = g.rol === "super_beheerder" ? "#6C3FC5" : g.rol === "beheerder" ? "#4A6FD9" : T.muted;
                 const statusKleur = g.status === "actief" ? { bg: "#D4EDDA", text: "#155724" } : g.status === "wacht" ? { bg: "#FFF3CD", text: "#856404" } : { bg: "#F8D7DA", text: "#721C24" };
