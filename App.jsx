@@ -99,6 +99,19 @@ const api = {
   getBeheerderCirkels:  (beheerderId) => sb(`beheerder_cirkels?select=cirkel_id&beheerder_id=eq.${beheerderId}`),
   insertBeheerderCirkel:(row)         => sb("beheerder_cirkels", { method: "POST", body: JSON.stringify(row) }),
 
+  // Auth gebruiker verwijderen via Edge Function
+  verwijderAuthGebruiker: (authId) => fetch(
+    `${SUPABASE_URL}/functions/v1/verwijder-gebruiker`,
+    {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${authToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ auth_id: authId }),
+    }
+  ).then(r => r.json()),
+
   // Wachtwoord reset e-mail
   resetWachtwoord: (email, captchaToken) => fetch(`${SUPABASE_URL}/auth/v1/recover`, {
     method: "POST",
@@ -744,9 +757,18 @@ function App() {
   async function superGebruikerVerwijderen(id, naam) {
     if (!window.confirm(`Weet je zeker dat je "${naam}" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.`)) return;
     try {
+      // Haal eerst auth_id op
+      const accounts = await sb(`accounts?id=eq.${id}&select=auth_id`);
+      const authId = accounts[0]?.auth_id;
+
+      // Verwijder uit accounts tabel
       await api.deleteAccount(id);
       setAlleGebruikers(prev => prev.filter(g => g.id !== id));
       setSuperWachtenden(prev => prev.filter(g => g.id !== id));
+
+      // Verwijder uit Supabase Auth via Edge Function
+      if (authId) await api.verwijderAuthGebruiker(authId);
+
       showToast(`${naam} verwijderd.`);
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
   }
