@@ -554,7 +554,7 @@ function App() {
         return;
       }
       setCirkelId(acc.cirkel_id);
-      await Promise.all([laadCirkelData(acc.cirkel_id), laadVerzoeken(acc.id)]);
+		await Promise.all([laadCirkels(), laadCirkelData(acc.cirkel_id), laadVerzoeken(acc.id)]);
       setScherm("cirkel");
       showToast("Welkom terug, " + acc.naam.split(" ")[0] + "!");
     } catch (e) {
