@@ -1053,11 +1053,6 @@ function App() {
           </div>
         )}
 
-{scherm === "cirkel" && (
-  <div style={{background:"red",color:"white",padding:10}}>
-    cirkelId: {cirkelId} | cirkel: {cirkel?.naam || "null"} | gebruiker: {gebruiker?.naam}
-  </div>
-)}
 
         {/* ══ CIRKEL ══ */}
         {scherm === "cirkel" && cirkel && (
