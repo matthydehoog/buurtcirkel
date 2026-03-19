@@ -440,6 +440,20 @@ function App() {
   // ── DATA LADEN ──────────────────────────────────────────────────
   useEffect(() => { laadCirkels(); }, []);
 
+  // ── RECOVERY TOKEN AFVANGEN ─────────────────────────────────────
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes("type=recovery") && hash.includes("access_token=")) {
+      const params = new URLSearchParams(hash.replace("#", ""));
+      const token = params.get("access_token");
+      if (token) {
+        authToken = token;
+        setScherm("resetWachtwoord");
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+    }
+  }, []);
+
   async function laadCirkels() {
     try {
       const data = await api.getCirkels();
@@ -572,6 +586,29 @@ function App() {
       }
       setLoginCaptcha(null);
       if (window.hcaptcha) window.hcaptcha.reset();
+    } finally {
+      setBezig(false);
+    }
+  }
+
+  async function wachtwoordResetten() {
+    setAanmeldFout("");
+    const { nieuw, herhaal } = wijzigForm;
+    if (!nieuw || !herhaal)              { setAanmeldFout("Vul alle velden in."); return; }
+    if (nieuw !== herhaal)               { setAanmeldFout("Wachtwoorden komen niet overeen."); return; }
+    if (nieuw.length < 8)                { setAanmeldFout("Wachtwoord moet minimaal 8 tekens zijn."); return; }
+    if (!/[A-Z]/.test(nieuw))            { setAanmeldFout("Wachtwoord moet minimaal 1 hoofdletter bevatten."); return; }
+    if (!/[^A-Za-z0-9]/.test(nieuw))    { setAanmeldFout("Wachtwoord moet minimaal 1 speciaal teken bevatten."); return; }
+    setBezig(true);
+    try {
+      const result = await api.updatePassword(nieuw);
+      if (result.error) throw new Error(result.error.message || "Fout bij opslaan");
+      authToken = null;
+      setWijzigForm({ huidig: "", nieuw: "", herhaal: "" });
+      setScherm("login");
+      showToast("Wachtwoord gewijzigd! Je kunt nu inloggen.");
+    } catch (e) {
+      setAanmeldFout("Fout: " + e.message);
     } finally {
       setBezig(false);
     }
@@ -994,6 +1031,24 @@ function App() {
               De beheerder van <strong>{cirkels.find(c => c.id === gebruiker?.cirkel_id)?.naam || "je buurtcirkel"}</strong> beoordeelt je verzoek.
             </p>
             <button type="button" onClick={uitloggen} style={{ ...btnSecondary, width: "auto", padding: "10px 24px" }}>Uitloggen</button>
+          </div>
+        )}
+
+        {/* ══ WACHTWOORD RESETTEN ══ */}
+        {scherm === "resetWachtwoord" && (
+          <div className="bc-fade">
+            <div style={card}>
+              <h2 style={{ fontWeight: 800, fontSize: 20, marginBottom: 4, letterSpacing: "-0.5px" }}>Nieuw wachtwoord instellen</h2>
+              <p style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>Kies een nieuw wachtwoord voor je account.</p>
+              {aanmeldFout && <div style={foutBox}>{aanmeldFout}</div>}
+              <label style={label}>Nieuw wachtwoord</label>
+              <input type="password" value={wijzigForm.nieuw} onChange={e => setWijzigForm(p => ({ ...p, nieuw: e.target.value }))} placeholder="Min. 8 tekens, 1 hoofdletter, 1 speciaal teken" style={{ ...inp, marginBottom: 14 }} />
+              <label style={label}>Herhaal wachtwoord</label>
+              <input type="password" value={wijzigForm.herhaal} onChange={e => setWijzigForm(p => ({ ...p, herhaal: e.target.value }))} placeholder="Nogmaals je wachtwoord" style={{ ...inp, marginBottom: 20 }} />
+              <button type="button" onClick={wachtwoordResetten} disabled={bezig} style={{ ...btnPrimary, opacity: bezig ? 0.7 : 1, cursor: bezig ? "not-allowed" : "pointer" }}>
+                {bezig ? "Bezig..." : "Wachtwoord opslaan"}
+              </button>
+            </div>
           </div>
         )}
 
