@@ -1,4 +1,4 @@
-const APP_VERSIE = "2.8.5";
+const APP_VERSIE = "2.8.4";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -554,9 +554,13 @@ function App() {
         return;
       }
       setCirkelId(acc.cirkel_id);
-		await Promise.all([laadCirkels(), laadCirkelData(acc.cirkel_id), laadVerzoeken(acc.id)]);
-      setScherm("cirkel");
-      showToast("Welkom terug, " + acc.naam.split(" ")[0] + "!");
+      await Promise.all([laadCirkels(), laadCirkelData(acc.cirkel_id), laadVerzoeken(acc.id)]);
+      if (!acc.welkom_gezien) {
+        setScherm("welkom");
+      } else {
+        setScherm("cirkel");
+        showToast("Welkom terug, " + acc.naam.split(" ")[0] + "!");
+      }
     } catch (e) {
       const isVerkeerd = e.message.includes("Invalid login");
       if (isVerkeerd) {
@@ -636,6 +640,14 @@ function App() {
     } finally {
       setBezig(false);
     }
+  }
+
+  async function welkomGezien(naarDienst = false) {
+    try {
+      await api.updateAccount(gebruiker.id, { welkom_gezien: true });
+      setGebruiker(prev => ({ ...prev, welkom_gezien: true }));
+    } catch (e) {}
+    setScherm(naarDienst ? "nieuweDienst" : "cirkel");
   }
 
   async function uitloggen() {
@@ -1035,6 +1047,42 @@ function App() {
           </div>
         )}
 
+        {/* ══ WELKOM ══ */}
+        {scherm === "welkom" && cirkel && (
+          <div className="bc-fade">
+            <div style={{ background: cirkel.kleur, borderRadius: T.rXl, padding: "32px 24px", marginBottom: 20, color: "#fff", textAlign: "center", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", right: -20, top: -20, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
+              <div style={{ position: "absolute", left: -20, bottom: -30, width: 100, height: 100, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
+              <div style={{ fontSize: 48, marginBottom: 12 }}>🏘️</div>
+              <h1 style={{ fontWeight: 800, fontSize: 24, marginBottom: 6, letterSpacing: "-0.5px" }}>
+                Welkom, {gebruiker?.naam.split(" ")[0]}!
+              </h1>
+              <p style={{ opacity: 0.85, fontSize: 14, lineHeight: 1.6 }}>
+                Je bent goedgekeurd als lid van <strong>{cirkel.naam}</strong>
+              </p>
+            </div>
+
+            <div style={{ ...card, marginBottom: 12 }}>
+              <h2 style={{ fontWeight: 700, fontSize: 16, marginBottom: 12, letterSpacing: "-0.3px" }}>Wat is BuurtCirkel?</h2>
+              <p style={{ fontSize: 14, color: T.muted, lineHeight: 1.7, marginBottom: 12 }}>
+                BuurtCirkel is een platform waar buurtbewoners diensten met elkaar uitwisselen. Denk aan hulp in de tuin, kooklessen, technische hulp of kinderopvang.
+              </p>
+              <p style={{ fontSize: 14, color: T.muted, lineHeight: 1.7 }}>
+                Je kunt zelf een dienst aanbieden, of een verzoek sturen naar een buur die iets aanbiedt wat jij nodig hebt.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <button type="button" onClick={() => welkomGezien(false)} style={{ ...btnPrimary, background: cirkel.kleur }}>
+                Bekijk diensten in {cirkel.naam}
+              </button>
+              <button type="button" onClick={() => welkomGezien(true)} style={btnSecondary}>
+                + Zelf een dienst aanbieden
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ══ WACHTWOORD RESETTEN ══ */}
         {scherm === "resetWachtwoord" && (
           <div className="bc-fade">
@@ -1052,7 +1100,6 @@ function App() {
             </div>
           </div>
         )}
-
 
         {/* ══ CIRKEL ══ */}
         {scherm === "cirkel" && cirkel && (
