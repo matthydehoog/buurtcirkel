@@ -1,5 +1,5 @@
-// BuurtCirkel Service Worker v2.8.1
-const CACHE_NAME = "buurtcirkel-v2.8.1";
+// BuurtCirkel Service Worker v2.9.1
+const CACHE_NAME = "buurtcirkel-v2.9.1";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
@@ -31,13 +31,14 @@ self.addEventListener("activate", (event) => {
 // ── FETCH ─────────────────────────────────────────────────────────
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
-
-  // Nooit cachen: Supabase API en hCaptcha
-  if (url.hostname.includes("supabase.co") || url.hostname.includes("hcaptcha.com")) {
-    event.respondWith(fetch(event.request));
-    return;
+  // Nooit cachen: Supabase API, Edge Functions en hCaptcha
+  if (
+    url.hostname.includes("supabase.co") ||
+    url.hostname.includes("hcaptcha.com") ||
+    url.pathname.includes("/functions/v1/")
+  ) {
+    return; // Laat de browser het zelf afhandelen
   }
-
   // Cache-first voor alle overige verzoeken
   event.respondWith(
     caches.match(event.request).then((cached) => {
@@ -50,7 +51,6 @@ self.addEventListener("fetch", (event) => {
           return response;
         })
         .catch(() => {
-          // Offline fallback voor navigatie
           if (event.request.mode === "navigate") return caches.match("/index.html");
         });
     })
