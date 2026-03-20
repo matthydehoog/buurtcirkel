@@ -10,23 +10,34 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
-  }
-
   try {
-    const { auth_id } = await req.json();
-    if (!auth_id) {
-      return new Response(JSON.stringify({ error: "auth_id vereist" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("Geen autorisatie");
 
+    // Valideer JWT en controleer rol
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) throw new Error("Ongeldige token");
+
+    // Controleer of gebruiker beheerder is
+    const { data: account } = await supabase
+      .from("accounts")
+      .select("rol")
+      .eq("auth_id", user.id)
+      .single();
+
+    if (!account || !["beheerder", "super_beheerder"].includes(account.rol)) {
+      throw new Error("Geen toegang");
+    }
+
+    const { auth_id } = await req.json();
+    if (!auth_id) throw new Error("auth_id vereist");
 
     const { error } = await supabase.auth.admin.deleteUser(auth_id);
     if (error) throw error;
@@ -36,7 +47,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

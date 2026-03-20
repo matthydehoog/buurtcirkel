@@ -1,4 +1,4 @@
-const APP_VERSIE = "2.9.2";
+const APP_VERSIE = "2.10.0";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -88,7 +88,7 @@ const api = {
   getAlleWachtenden: () => sb("accounts?select=*&status=eq.wacht&order=naam"),
 
   // Alle accounts (voor super beheerder)
-  getAlleAccounts: () => sb("accounts?select=*&order=cirkel_id,naam"),
+  getAlleAccounts: (van = 0, aantal = 20, zoek = "") => sb(`accounts?select=*&order=cirkel_id,naam&limit=${aantal}&offset=${van}${zoek ? `&or=(naam.ilike.*${encodeURIComponent(zoek)}*,email.ilike.*${encodeURIComponent(zoek)}*,cirkel_id.ilike.*${encodeURIComponent(zoek)}*)` : ""}`),
 
   // Login pogingen
   getLoginPoging:    (email) => sb(`login_pogingen?select=*&email=eq.${encodeURIComponent(email)}`),
@@ -449,7 +449,9 @@ function App() {
   const [wijzigFout, setWijzigFout]   = useState("");
   const [wijzigModal, setWijzigModal] = useState(false);
   const [resetModal, setResetModal]     = useState(null);
+  const [heeftMeerGebruikers, setHeeftMeerGebruikers] = useState(false);
   const [gebruikerZoek, setGebruikerZoek] = useState("");
+  const zoekTimer = React.useRef(null);
   const [resetCaptcha, setResetCaptcha] = useState(null);
 
   const cirkel           = cirkels.find(c => c.id === cirkelId) || null;
@@ -536,10 +538,16 @@ function App() {
     } catch (e) { console.error("Wachtenden laden mislukt:", e.message); }
   }
 
-  async function laadAlleGebruikers() {
+  async function laadAlleGebruikers(toevoegen = false, zoek = "") {
     try {
-      const data = await api.getAlleAccounts();
-      setAlleGebruikers(data);
+      const van = toevoegen ? alleGebruikers.length : 0;
+      const data = await api.getAlleAccounts(van, 20, zoek);
+      if (toevoegen) {
+        setAlleGebruikers(prev => [...prev, ...data]);
+      } else {
+        setAlleGebruikers(data);
+      }
+      setHeeftMeerGebruikers(data.length === 20);
     } catch (e) { console.error("Gebruikers laden mislukt:", e.message); }
   }
 
@@ -1446,24 +1454,21 @@ function App() {
             <p style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>Alle gebruikers over alle buurtcirkels.</p>
             <input
               value={gebruikerZoek}
-              onChange={e => setGebruikerZoek(e.target.value)}
+              onChange={e => {
+                const val = e.target.value;
+                setGebruikerZoek(val);
+                clearTimeout(zoekTimer.current);
+                zoekTimer.current = setTimeout(() => {
+                  laadAlleGebruikers(false, val);
+                }, 350);
+              }}
               placeholder="🔍  Zoek op naam, e-mail of cirkel..."
               style={{ ...inp, marginBottom: 16 }}
             />
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {alleGebruikers.filter(g =>
-                gebruikerZoek === "" ||
-                g.naam?.toLowerCase().includes(gebruikerZoek.toLowerCase()) ||
-                g.email?.toLowerCase().includes(gebruikerZoek.toLowerCase()) ||
-                g.cirkel_id?.toLowerCase().includes(gebruikerZoek.toLowerCase())
-              ).length === 0 ? (
+              {alleGebruikers.length === 0 ? (
                 <div style={{ ...card, color: T.mutedLt, textAlign: "center", padding: 24 }}>Geen gebruikers gevonden</div>
-              ) : alleGebruikers.filter(g =>
-                gebruikerZoek === "" ||
-                g.naam?.toLowerCase().includes(gebruikerZoek.toLowerCase()) ||
-                g.email?.toLowerCase().includes(gebruikerZoek.toLowerCase()) ||
-                g.cirkel_id?.toLowerCase().includes(gebruikerZoek.toLowerCase())
-              ).map(g => {
+              ) : alleGebruikers.map(g => {
                 const cirkelNaam = cirkels.find(c => c.id === g.cirkel_id);
                 const rolKleur = g.rol === "super_beheerder" ? "#6C3FC5" : g.rol === "beheerder" ? "#4A6FD9" : T.muted;
                 const statusKleur = g.status === "actief" ? { bg: "#D4EDDA", text: "#155724" } : g.status === "wacht" ? { bg: "#FFF3CD", text: "#856404" } : { bg: "#F8D7DA", text: "#721C24" };
@@ -1505,6 +1510,11 @@ function App() {
                 );
               })}
             </div>
+            {heeftMeerGebruikers && (
+              <button type="button" onClick={() => laadAlleGebruikers(true, gebruikerZoek)} style={{ ...btnSecondary, marginTop: 12 }}>
+                Laad meer gebruikers
+              </button>
+            )}
           </div>
         )}
 
