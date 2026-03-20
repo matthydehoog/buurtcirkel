@@ -757,6 +757,7 @@ function App() {
   async function superGebruikerVerwijderen(id, naam) {
     if (!window.confirm(`Weet je zeker dat je "${naam}" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.`)) return;
     try {
+		 console.log("authToken:", authToken);
       // Haal eerst auth_id op
       const accounts = await sb(`accounts?id=eq.${id}&select=auth_id`);
       const authId = accounts[0]?.auth_id;
