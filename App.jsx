@@ -1,4 +1,4 @@
-const APP_VERSIE = "2.9.1";
+const APP_VERSIE = "2.9.2";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -98,6 +98,19 @@ const api = {
   // Beheerder-cirkels
   getBeheerderCirkels:  (beheerderId) => sb(`beheerder_cirkels?select=cirkel_id&beheerder_id=eq.${beheerderId}`),
   insertBeheerderCirkel:(row)         => sb("beheerder_cirkels", { method: "POST", body: JSON.stringify(row) }),
+
+  // Goedkeuring e-mail versturen via Edge Function
+  stuurEmail: (naar, naam, cirkelNaam) => fetch(
+    `${SUPABASE_URL}/functions/v1/stuur-email`,
+    {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${authToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ naar, naam, cirkelNaam }),
+    }
+  ).then(r => r.json()),
 
   // Auth gebruiker verwijderen via Edge Function
   verwijderAuthGebruiker: (authId) => fetch(
@@ -732,7 +745,13 @@ function App() {
       await api.updateAccount(id, { status: "actief" });
       setLeden(prev => prev.map(l => l.id === id ? { ...l, status: "actief" } : l));
       setSuperWachtenden(prev => prev.filter(l => l.id !== id));
-      showToast("Lid goedgekeurd!");
+
+      // Stuur goedkeuring e-mail
+      const lid = leden.find(l => l.id === id) || superWachtenden.find(l => l.id === id);
+      const cirkelNaamText = cirkels.find(c => c.id === lid?.cirkel_id)?.naam || "je buurtcirkel";
+      if (lid?.email) await api.stuurEmail(lid.email, lid.naam, cirkelNaamText);
+
+      showToast("Lid goedgekeurd en e-mail verstuurd!");
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
   }
 
@@ -757,7 +776,6 @@ function App() {
   async function superGebruikerVerwijderen(id, naam) {
     if (!window.confirm(`Weet je zeker dat je "${naam}" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.`)) return;
     try {
-		 console.log("authToken:", authToken);
       // Haal eerst auth_id op
       const accounts = await sb(`accounts?id=eq.${id}&select=auth_id`);
       const authId = accounts[0]?.auth_id;
