@@ -1,4 +1,4 @@
-const APP_VERSIE = "2.10.3";
+const APP_VERSIE = "2.10.4";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -775,18 +775,7 @@ function App() {
     let authId = null;
     let tijdelijkToken = null;
     try {
-      // 1. Valideer cirkelcode via database voordat Auth account wordt aangemaakt
-      const cirkelCheck = await fetch(
-        `${SUPABASE_URL}/rest/v1/cirkels?id=eq.${encodeURIComponent(cId)}&select=id`,
-        { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
-      );
-      const cirkelData = await cirkelCheck.json();
-      if (!cirkelData.length) {
-        setAanmeldFout("Onbekende buurtcirkelcode. Controleer de code en probeer opnieuw.");
-        return;
-      }
-
-      // 2. Maak Auth account aan — captcha token wordt hier verbruikt
+      // 1. Maak Auth account aan — captcha token wordt hier verbruikt
       const authData = await api.signUp(email.trim(), wachtwoord, aanmeldCaptcha);
       authId = authData.user?.id;
       if (!authId) throw new Error("Aanmaken Auth account mislukt.");
