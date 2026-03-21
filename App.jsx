@@ -1,4 +1,4 @@
-const APP_VERSIE = "2.10.2 ";
+const APP_VERSIE = "2.10.3";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -160,12 +160,12 @@ const api = {
   ).then(r => r.json()),
 
   // Auth gebruiker verwijderen via Edge Function
-  verwijderAuthGebruiker: (authId) => fetch(
+  verwijderAuthGebruiker: (authId, token = null) => fetch(
     `${SUPABASE_URL}/functions/v1/verwijder-gebruiker`,
     {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${authToken}`,
+        "Authorization": `Bearer ${token || authToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ auth_id: authId }),
@@ -772,34 +772,61 @@ function App() {
     if (!/^[0-9\s\+\-]{7,15}$/.test(telefoon.trim())) { setAanmeldFout("Voer een geldig telefoonnummer in."); return; }
     if (!aanmeldCaptcha) { setAanmeldFout("Bevestig dat je geen robot bent."); return; }
     setBezig(true);
+    let authId = null;
+    let tijdelijkToken = null;
     try {
-      // 1. Maak Auth account aan — captcha token wordt hier verbruikt
+      // 1. Valideer cirkelcode via database voordat Auth account wordt aangemaakt
+      const cirkelCheck = await fetch(
+        `${SUPABASE_URL}/rest/v1/cirkels?id=eq.${encodeURIComponent(cId)}&select=id`,
+        { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
+      );
+      const cirkelData = await cirkelCheck.json();
+      if (!cirkelData.length) {
+        setAanmeldFout("Onbekende buurtcirkelcode. Controleer de code en probeer opnieuw.");
+        return;
+      }
+
+      // 2. Maak Auth account aan — captcha token wordt hier verbruikt
       const authData = await api.signUp(email.trim(), wachtwoord, aanmeldCaptcha);
-      const authId = authData.user?.id;
+      authId = authData.user?.id;
       if (!authId) throw new Error("Aanmaken Auth account mislukt.");
 
-      // 2. Haal token direct uit signUp response
+      // 3. Haal token direct uit signUp response
       //    (werkt omdat e-mailbevestiging uitstaat in Supabase)
-      authToken = authData.access_token;
+      tijdelijkToken = authData.access_token;
+      authToken = tijdelijkToken;
       refreshToken = authData.refresh_token;
       if (!authToken) throw new Error("Geen sessie ontvangen na aanmelden.");
 
-      // 3. Sla profiel op in accounts tabel
+      // 4. Sla profiel op in accounts tabel
       const nieuw = await api.insertAccount({
         auth_id: authId,
         naam: naam.trim(), email: email.trim(),
         telefoon: telefoon.trim(), rol: "lid", status: "wacht", cirkel_id: cId,
       });
 
-      // 4. Uitloggen — account moet eerst goedgekeurd worden door beheerder
+      // 5. Uitloggen — account moet eerst goedgekeurd worden door beheerder
       try { await api.signOut(); } catch (_) {}
       authToken = null;
+      refreshToken = null;
 
       setGebruiker(nieuw[0]);
       setScherm("wachten");
       showToast("Aanmelding verstuurd!");
     } catch (e) {
-      setAanmeldFout(e.message.includes("already registered") ? "Dit e-mailadres is al in gebruik." : "Fout: " + e.message);
+      // Ruim Auth account op als het aanmaken van het profiel mislukte
+      if (authId && tijdelijkToken) {
+        try { await api.verwijderAuthGebruiker(authId, tijdelijkToken); } catch (_) {}
+      }
+      authToken = null;
+      refreshToken = null;
+      if (e.message.includes("already registered")) {
+        setAanmeldFout("Dit e-mailadres is al in gebruik.");
+      } else if (e.message.includes("foreign key")) {
+        setAanmeldFout("Onbekende buurtcirkelcode. Controleer de code en probeer opnieuw.");
+      } else {
+        setAanmeldFout("Fout: " + e.message);
+      }
       setAanmeldCaptcha(null);
       if (window.hcaptcha) window.hcaptcha.reset("aanmeld-captcha");
     } finally {
