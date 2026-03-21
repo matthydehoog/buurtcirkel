@@ -1,4 +1,4 @@
-const APP_VERSIE = "2.10.7";
+const APP_VERSIE = "2.10.8";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -967,6 +967,9 @@ function App() {
     try {
       await api.deleteDienst(id);
       setDiensten(prev => prev.filter(d => d.id !== id));
+      // Verwijder ook gerelateerde verzoeken uit de state
+      setVerzoeken(prev => prev.filter(v => v.dienst_id !== id));
+      setMijnVerzoeken(prev => prev.filter(v => v.dienst_id !== id));
       showToast("Dienst verwijderd.");
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
   }
