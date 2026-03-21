@@ -990,9 +990,10 @@ function App() {
   // ── VERZOEKEN ───────────────────────────────────────────────────
   async function verzoekVersturen() {
 	  
-	  const aanbieder = leden.find(l => l.id === verzoekModal.lid_id);
+const aanbieder = leden.find(l => l.id === verzoekModal.lid_id);
 console.log("aanbieder:", aanbieder);
-console.log("verzoekModal.lid_id:", verzoekModal.lid_id);
+console.log("leden:", leden);
+console.log("lid_id:", verzoekModal.lid_id);
 	  
     if (!verzoekModal) return;
     setBezig(true);
