@@ -1,4 +1,4 @@
-const APP_VERSIE = "2.10.4";
+const APP_VERSIE = "2.10.4.1";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -160,7 +160,7 @@ const api = {
   ).then(r => r.json()),
 
   // Auth gebruiker verwijderen via Edge Function
-  verwijderAuthGebruiker: (authId, token = null) => fetch(
+  verwijderAuthGebruiker: (authId, token = null, zelfCleanup = false) => fetch(
     `${SUPABASE_URL}/functions/v1/verwijder-gebruiker`,
     {
       method: "POST",
@@ -168,7 +168,7 @@ const api = {
         "Authorization": `Bearer ${token || authToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ auth_id: authId }),
+      body: JSON.stringify({ auth_id: authId, zelf_cleanup: zelfCleanup }),
     }
   ).then(r => r.json()),
 
@@ -805,7 +805,7 @@ function App() {
     } catch (e) {
       // Ruim Auth account op als het aanmaken van het profiel mislukte
       if (authId && tijdelijkToken) {
-        try { await api.verwijderAuthGebruiker(authId, tijdelijkToken); } catch (_) {}
+        try { await api.verwijderAuthGebruiker(authId, tijdelijkToken, true); } catch (_) {}
       }
       authToken = null;
       refreshToken = null;
