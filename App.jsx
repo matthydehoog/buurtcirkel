@@ -1,4 +1,4 @@
-const APP_VERSIE = "2.10.4.1";
+const APP_VERSIE = "2.10.5";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -525,6 +525,18 @@ function App() {
     }, 50 * 60 * 1000);
     return () => clearInterval(interval);
   }, [authToken]);
+
+  // ── AUTO REFRESH WACHTENDEN ────────────────────────────────────
+  useEffect(() => {
+    if (!isSuperBeheerder) return;
+    const interval = setInterval(async () => {
+      try {
+        const data = await api.getAlleWachtenden();
+        setSuperWachtenden(data);
+      } catch (_) {}
+    }, 30 * 1000);
+    return () => clearInterval(interval);
+  }, [isSuperBeheerder]);
 
   // ── RECOVERY TOKEN AFVANGEN ─────────────────────────────────────
   useEffect(() => {
