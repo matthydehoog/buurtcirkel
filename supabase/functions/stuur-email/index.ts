@@ -10,6 +10,19 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+// Controleer Origin
+const origin = req.headers.get("origin") || "";
+const toegestaneOrigins = [
+  "https://buurtcirkel.vercel.app",
+  "http://localhost:3000",
+];
+if (!toegestaneOrigins.includes(origin)) {
+  return new Response(JSON.stringify({ error: "Niet toegestaan" }), {
+    status: 403,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Geen autorisatie");

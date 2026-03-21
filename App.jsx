@@ -1,4 +1,4 @@
-const APP_VERSIE = "2.10.0";
+const APP_VERSIE = "2.10.1";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -9,6 +9,7 @@ const HCAPTCHA_SITE_KEY = "ef56a732-ebfc-459e-9b72-ffbc5e0e8a0e";
 
 // Actieve Auth sessie (token wordt na login ingesteld)
 let authToken = null;
+let refreshToken = null;
 
 // REST API helper — gebruikt JWT token als die beschikbaar is
 async function sb(path, options = {}) {
@@ -23,12 +24,58 @@ async function sb(path, options = {}) {
     },
     ...options,
   });
+
+  // Bij 401 probeer token te vernieuwen en opnieuw
+  if (res.status === 401 && refreshToken) {
+    const gelukt = await vernieuwToken();
+    if (gelukt) {
+      const retry = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+          "Prefer": options.prefer || "return=representation",
+          ...options.headers,
+        },
+        ...options,
+      });
+      if (!retry.ok) {
+        const err = await retry.json().catch(() => ({}));
+        throw new Error(err.message || err.error || `HTTP ${retry.status}`);
+      }
+      const text = await retry.text();
+      return text ? JSON.parse(text) : [];
+    }
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || err.error || `HTTP ${res.status}`);
   }
   const text = await res.text();
   return text ? JSON.parse(text) : [];
+}
+
+async function vernieuwToken() {
+  if (!refreshToken) return false;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: "POST",
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    const data = await res.json();
+    if (!res.ok) return false;
+    authToken = data.access_token;
+    refreshToken = data.refresh_token;
+    return true;
+  } catch (e) {
+    console.error("Token vernieuwen mislukt:", e.message);
+    return false;
+  }
 }
 
 // Supabase Auth helper
@@ -469,6 +516,16 @@ function App() {
   // ── DATA LADEN ──────────────────────────────────────────────────
   useEffect(() => { laadCirkels(); }, []);
 
+  // ── AUTO TOKEN REFRESH ──────────────────────────────────────────
+  useEffect(() => {
+    if (!authToken) return;
+    const interval = setInterval(async () => {
+      const gelukt = await vernieuwToken();
+      if (!gelukt) uitloggen();
+    }, 50 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [authToken]);
+
   // ── RECOVERY TOKEN AFVANGEN ─────────────────────────────────────
   useEffect(() => {
     const hash = window.location.hash;
@@ -570,6 +627,7 @@ function App() {
 
       const authData = await api.signIn(email, loginForm.wachtwoord, loginCaptcha);
       authToken = authData.access_token;
+      refreshToken = authData.refresh_token;
 
       await api.resetLoginPoging(email);
 
@@ -687,6 +745,7 @@ function App() {
   async function uitloggen() {
     try { await api.signOut(); } catch (_) {}
     authToken = null;
+    refreshToken = null;
     setGebruiker(null);
     setCirkelId(null);
     setLaden(false);
@@ -722,6 +781,7 @@ function App() {
       // 2. Haal token direct uit signUp response
       //    (werkt omdat e-mailbevestiging uitstaat in Supabase)
       authToken = authData.access_token;
+      refreshToken = authData.refresh_token;
       if (!authToken) throw new Error("Geen sessie ontvangen na aanmelden.");
 
       // 3. Sla profiel op in accounts tabel
