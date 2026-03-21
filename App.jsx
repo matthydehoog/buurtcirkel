@@ -994,6 +994,7 @@ const aanbieder = leden.find(l => l.id === verzoekModal.lid_id);
 console.log("aanbieder:", aanbieder);
 console.log("leden:", leden);
 console.log("lid_id:", verzoekModal.lid_id);
+console.log("leden[0].id type:", typeof leden[0].id, "lid_id type:", typeof verzoekModal.lid_id);
 	  
     if (!verzoekModal) return;
     setBezig(true);
