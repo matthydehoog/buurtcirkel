@@ -1,4 +1,4 @@
-const APP_VERSIE = "2.10.6";
+const APP_VERSIE = "2.10.7";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -989,13 +989,6 @@ function App() {
 
   // ── VERZOEKEN ───────────────────────────────────────────────────
   async function verzoekVersturen() {
-	  
-const aanbieder = leden.find(l => l.id === verzoekModal.lid_id);
-console.log("aanbieder:", aanbieder);
-console.log("leden:", leden);
-console.log("lid_id:", verzoekModal.lid_id);
-console.log("leden[0].id type:", typeof leden[0].id, "lid_id type:", typeof verzoekModal.lid_id);
-	  
     if (!verzoekModal) return;
     setBezig(true);
     try {
@@ -1012,18 +1005,21 @@ console.log("leden[0].id type:", typeof leden[0].id, "lid_id type:", typeof verz
       });
       setMijnVerzoeken(prev => [nieuw[0], ...prev]);
 
-      // Stuur e-mail naar aanbieder
-      const aanbieder = leden.find(l => l.id === verzoekModal.lid_id);
-      if (aanbieder?.email) {
-        await api.stuurEmail({
-          type: "verzoek",
-          naar: aanbieder.email,
-          aanbiedernaam: aanbieder.naam,
-          aanvragernaam: gebruiker.naam,
-          dienstTitel: verzoekModal.titel,
-          bericht: verzoekBericht.trim(),
-        });
-      }
+      // Stuur e-mail naar aanbieder via accounts tabel
+      try {
+        const aanbiedersData = await sb(`accounts?id=eq.${verzoekModal.lid_id}&select=email,naam`);
+        const aanbieder = aanbiedersData[0];
+        if (aanbieder?.email) {
+          await api.stuurEmail({
+            type: "verzoek",
+            naar: aanbieder.email,
+            aanbiedernaam: aanbieder.naam,
+            aanvragernaam: gebruiker.naam,
+            dienstTitel: verzoekModal.titel,
+            bericht: verzoekBericht.trim(),
+          });
+        }
+      } catch (_) {}
 
       setVerzoekModal(null);
       setVerzoekBericht("");
