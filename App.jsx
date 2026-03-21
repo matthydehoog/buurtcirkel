@@ -1,4 +1,4 @@
-const APP_VERSIE = "2.10.5";
+const APP_VERSIE = "2.10.6";
 
 // ─── SUPABASE CONFIG ───────────────────────────────────────────────
 const SUPABASE_URL = "https://uztplrszzpwywhvsmoqz.supabase.co";
@@ -146,8 +146,8 @@ const api = {
   getBeheerderCirkels:  (beheerderId) => sb(`beheerder_cirkels?select=cirkel_id&beheerder_id=eq.${beheerderId}`),
   insertBeheerderCirkel:(row)         => sb("beheerder_cirkels", { method: "POST", body: JSON.stringify(row) }),
 
-  // Goedkeuring e-mail versturen via Edge Function
-  stuurEmail: (naar, naam, cirkelNaam) => fetch(
+  // E-mail versturen via Edge Function
+  stuurEmail: (body) => fetch(
     `${SUPABASE_URL}/functions/v1/stuur-email`,
     {
       method: "POST",
@@ -155,7 +155,7 @@ const api = {
         "Authorization": `Bearer ${authToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ naar, naam, cirkelNaam }),
+      body: JSON.stringify(body),
     }
   ).then(r => r.json()),
 
@@ -845,7 +845,7 @@ function App() {
       // Stuur goedkeuring e-mail
       const lid = leden.find(l => l.id === id) || superWachtenden.find(l => l.id === id);
       const cirkelNaamText = cirkels.find(c => c.id === lid?.cirkel_id)?.naam || "je buurtcirkel";
-      if (lid?.email) await api.stuurEmail(lid.email, lid.naam, cirkelNaamText);
+      if (lid?.email) await api.stuurEmail({ type: "goedkeuring", naar: lid.email, naam: lid.naam, cirkelNaam: cirkelNaamText });
 
       showToast("Lid goedgekeurd en e-mail verstuurd!");
     } catch (e) { showToast("Fout: " + e.message, "fout"); }
@@ -1004,6 +1004,20 @@ function App() {
         datum: new Date().toISOString().slice(0, 10),
       });
       setMijnVerzoeken(prev => [nieuw[0], ...prev]);
+
+      // Stuur e-mail naar aanbieder
+      const aanbieder = leden.find(l => l.id === verzoekModal.lid_id);
+      if (aanbieder?.email) {
+        await api.stuurEmail({
+          type: "verzoek",
+          naar: aanbieder.email,
+          aanbiedernaam: aanbieder.naam,
+          aanvragernaam: gebruiker.naam,
+          dienstTitel: verzoekModal.titel,
+          bericht: verzoekBericht.trim(),
+        });
+      }
+
       setVerzoekModal(null);
       setVerzoekBericht("");
       showToast("Verzoek verstuurd!");
